@@ -1,0 +1,28 @@
+import { AlertTriangle } from "lucide-react";
+import { LOW_STOCK_PRODUCTS } from "@/data/admin";
+
+/** Dashboard widget listing products below their low-stock threshold. */
+export default function LowStockAlert() {
+  return (
+    <div className="rounded-3xl bg-white shadow-soft p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <AlertTriangle className="w-4.5 h-4.5 text-soft-orange" />
+        <h3 className="font-semibold text-forest-700">Low Stock Alerts</h3>
+      </div>
+      {LOW_STOCK_PRODUCTS.length === 0 ? (
+        <p className="text-sm text-brown-500">All products are well stocked.</p>
+      ) : (
+        <div className="space-y-3">
+          {LOW_STOCK_PRODUCTS.map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-sm">
+              <span className="text-forest-700 truncate pr-2">{p.name}</span>
+              <span className={`font-semibold shrink-0 ${p.stock_quantity === 0 ? "text-red-600" : "text-soft-orange"}`}>
+                {p.stock_quantity === 0 ? "Out of stock" : `${p.stock_quantity} left`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

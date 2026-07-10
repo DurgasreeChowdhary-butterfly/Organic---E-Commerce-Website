@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global premium/organic theme. Fonts loaded via index.html <link>. */
+body {
+  @apply bg-cream text-forest-700 font-body antialiased;
+}
+
+h1, h2, h3, .font-display {
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #B9CE7F;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Smooth focus ring across the app for accessibility */
+:focus-visible {
+  outline: 2px solid #6B8E23;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
