@@ -1,20 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Search, ShoppingCart, Heart, User, Leaf, Menu, X } from "lucide-react";
+import { Search, ShoppingCart, Heart, User, Leaf, Menu, X, Package, MapPin, LogOut, LogIn } from "lucide-react";
 import clsx from "clsx";
 import SearchBar from "@/components/common/SearchBar";
 import { CATEGORIES } from "@/data/products";
-import { CART_ITEMS, WISHLIST_ITEMS } from "@/data/misc";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { logout } from "@/features/auth/authSlice";
 
 /**
  * Premium sticky header: logo, category nav, search bar, and account/
- * cart/wishlist icons with live badge counts from dummy data.
+ * cart/wishlist icons with live badge counts from Redux state.
  */
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  const { isAuthenticated, user } = useAppSelector((s) => s.auth);
+  const cartCount = useAppSelector((s) => s.cart.items.reduce((sum, i) => sum + i.quantity, 0));
+  const wishlistCount = useAppSelector((s) => s.wishlist.items.length);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -22,8 +30,19 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const cartCount = CART_ITEMS.reduce((sum, i) => sum + i.quantity, 0);
-  const wishlistCount = WISHLIST_ITEMS.length;
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  function handleLogout() {
+    dispatch(logout());
+    setAccountOpen(false);
+    navigate("/");
+  }
 
   return (
     <header
@@ -75,9 +94,50 @@ export default function Header() {
             )}
           </button>
 
-          <button onClick={() => navigate("/account/profile")} className="p-2 hidden sm:block" aria-label="Account">
-            <User className="w-5 h-5 text-forest-700" />
-          </button>
+          <div className="relative hidden sm:block" ref={accountRef}>
+            <button onClick={() => setAccountOpen((v) => !v)} className="p-2" aria-label="Account" aria-expanded={accountOpen}>
+              <User className="w-5 h-5 text-forest-700" />
+            </button>
+
+            {accountOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-glass overflow-hidden z-50 animate-scale-in origin-top-right">
+                {isAuthenticated ? (
+                  <>
+                    <div className="px-4 py-3 border-b border-beige">
+                      <p className="text-sm font-semibold text-forest-700 truncate">{user?.full_name}</p>
+                      <p className="text-xs text-brown-500 truncate">{user?.email}</p>
+                    </div>
+                    <Link to="/account/profile" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-forest-700 hover:bg-pista-50 transition-colors">
+                      <User className="w-4 h-4" /> My Profile
+                    </Link>
+                    <Link to="/orders" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-forest-700 hover:bg-pista-50 transition-colors">
+                      <Package className="w-4 h-4" /> My Orders
+                    </Link>
+                    <Link to="/account/addresses" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-forest-700 hover:bg-pista-50 transition-colors">
+                      <MapPin className="w-4 h-4" /> Addresses
+                    </Link>
+                    {user?.is_admin && (
+                      <Link to="/admin" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-pista-700 hover:bg-pista-50 transition-colors font-medium">
+                        <Leaf className="w-4 h-4" /> Admin Dashboard
+                      </Link>
+                    )}
+                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-beige">
+                      <LogOut className="w-4 h-4" /> Log Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-forest-700 hover:bg-pista-50 transition-colors">
+                      <LogIn className="w-4 h-4" /> Log In
+                    </Link>
+                    <Link to="/register" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-forest-700 hover:bg-pista-50 transition-colors">
+                      <User className="w-4 h-4" /> Create Account
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           <button className="lg:hidden p-2" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
             {menuOpen ? <X className="w-6 h-6 text-forest-700" /> : <Menu className="w-6 h-6 text-forest-700" />}
@@ -96,8 +156,23 @@ export default function Header() {
           {CATEGORIES.map((c) => (
             <NavLink key={c.id} to={`/products?category=${c.slug}`} onClick={() => setMenuOpen(false)}>{c.name}</NavLink>
           ))}
+          <div className="border-t border-beige my-1" />
+          <NavLink to="/cart" onClick={() => setMenuOpen(false)}>Cart ({cartCount})</NavLink>
           <NavLink to="/wishlist" onClick={() => setMenuOpen(false)}>Wishlist ({wishlistCount})</NavLink>
-          <NavLink to="/account/profile" onClick={() => setMenuOpen(false)}>My Account</NavLink>
+          {isAuthenticated ? (
+            <>
+              <NavLink to="/account/profile" onClick={() => setMenuOpen(false)}>My Account</NavLink>
+              <NavLink to="/orders" onClick={() => setMenuOpen(false)}>My Orders</NavLink>
+              <NavLink to="/account/addresses" onClick={() => setMenuOpen(false)}>Addresses</NavLink>
+              {user?.is_admin && <NavLink to="/admin" onClick={() => setMenuOpen(false)} className="font-semibold text-pista-700">Admin Dashboard</NavLink>}
+              <button onClick={() => { setMenuOpen(false); handleLogout(); }} className="text-left text-red-600 font-medium">Log Out</button>
+            </>
+          ) : (
+            <>
+              <NavLink to="/login" onClick={() => setMenuOpen(false)}>Log In</NavLink>
+              <NavLink to="/register" onClick={() => setMenuOpen(false)}>Create Account</NavLink>
+            </>
+          )}
         </div>
       )}
     </header>

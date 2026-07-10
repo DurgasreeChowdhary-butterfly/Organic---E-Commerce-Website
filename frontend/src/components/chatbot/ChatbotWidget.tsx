@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageSquareText, X, Send, Leaf } from "lucide-react";
-import { Link } from "react-router-dom";
 
 interface Message {
   id: number;
@@ -81,9 +80,14 @@ export default function ChatbotWidget() {
           </div>
 
           <div className="px-4 py-2 border-t border-beige">
-            <Link to="https://wa.me/919999999999" target="_blank" className="text-xs font-semibold text-pista-700 hover:underline">
+            <a
+              href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999"}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-semibold text-pista-700 hover:underline"
+            >
               Continue on WhatsApp →
-            </Link>
+            </a>
           </div>
 
           <form onSubmit={handleSend} className="flex items-center gap-2 p-3 border-t border-beige">

@@ -1,12 +1,22 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import OrderTable from "@/components/admin/OrderTable";
 import { STATUS_LABEL } from "@/data/orders";
+import { ADMIN_ORDERS } from "@/data/admin";
+import { useLoading } from "@/hooks/useLoading";
 import type { OrderStatus } from "@/types";
 
 const FILTERS: (OrderStatus | "all")[] = ["all", "pending", "confirmed", "packed", "shipped", "out_for_delivery", "delivered", "cancelled"];
 
 export default function AdminOrdersPage() {
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
+  const [orders, setOrders] = useState(ADMIN_ORDERS);
+  const loading = useLoading(300);
+
+  const filtered = useMemo(() => (filter === "all" ? orders : orders.filter((o) => o.status === filter)), [orders, filter]);
+
+  function handleStatusChange(id: string, status: OrderStatus) {
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+  }
 
   return (
     <div>
@@ -29,8 +39,7 @@ export default function AdminOrdersPage() {
         ))}
       </div>
 
-      {/* Note: OrderTable renders all dummy orders; filter chips are illustrative of the intended UX. */}
-      <OrderTable />
+      <OrderTable orders={filtered} onStatusChange={handleStatusChange} loading={loading} />
     </div>
   );
 }

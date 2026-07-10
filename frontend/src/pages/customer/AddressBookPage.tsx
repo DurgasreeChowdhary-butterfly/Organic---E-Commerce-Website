@@ -3,17 +3,42 @@ import { MapPin, Plus, Pencil, Trash2, Star } from "lucide-react";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import Button from "@/components/common/Button";
 import EmptyState from "@/components/common/EmptyState";
-import { ADDRESSES as INITIAL_ADDRESSES } from "@/data/orders";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import AddressFormModal, { type AddressFormValues } from "@/components/checkout/AddressFormModal";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { addAddress, updateAddress, removeAddress, setDefaultAddress } from "@/features/addresses/addressesSlice";
+import type { Address } from "@/types";
 
 export default function AddressBookPage() {
-  const [addresses, setAddresses] = useState(INITIAL_ADDRESSES);
+  const addresses = useAppSelector((s) => s.addresses.items);
+  const dispatch = useAppDispatch();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Address | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Address | null>(null);
 
-  function setDefault(id: string) {
-    setAddresses((prev) => prev.map((a) => ({ ...a, is_default: a.id === id })));
+  function openAdd() {
+    setEditing(null);
+    setModalOpen(true);
   }
 
-  function remove(id: string) {
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
+  function openEdit(addr: Address) {
+    setEditing(addr);
+    setModalOpen(true);
+  }
+
+  function handleSubmit(values: AddressFormValues) {
+    if (editing) {
+      dispatch(updateAddress({ ...editing, ...values }));
+    } else {
+      dispatch(addAddress(values));
+    }
+    setModalOpen(false);
+    setEditing(null);
+  }
+
+  function confirmDelete() {
+    if (deleteTarget) dispatch(removeAddress(deleteTarget.id));
+    setDeleteTarget(null);
   }
 
   return (
@@ -21,11 +46,11 @@ export default function AddressBookPage() {
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "My Addresses" }]} />
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl md:text-3xl text-forest-700">My Addresses</h1>
-        <Button icon={<Plus className="w-4 h-4" />}>Add Address</Button>
+        <Button icon={<Plus className="w-4 h-4" />} onClick={openAdd}>Add Address</Button>
       </div>
 
       {addresses.length === 0 ? (
-        <EmptyState icon={MapPin} title="No saved addresses" description="Add an address to make checkout faster next time." actionLabel="Add Address" />
+        <EmptyState icon={MapPin} title="No saved addresses" description="Add an address to make checkout faster next time." actionLabel="Add Address" onAction={openAdd} />
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
           {addresses.map((addr) => (
@@ -42,16 +67,32 @@ export default function AddressBookPage() {
                 {addr.line1}, {addr.line2 && `${addr.line2}, `}{addr.city}, {addr.state} - {addr.pincode}
               </p>
               <div className="flex items-center gap-4 text-xs font-semibold">
-                <button className="flex items-center gap-1 text-forest-700 hover:text-pista-700"><Pencil className="w-3.5 h-3.5" /> Edit</button>
-                <button onClick={() => remove(addr.id)} className="flex items-center gap-1 text-brown-500 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
+                <button onClick={() => openEdit(addr)} className="flex items-center gap-1 text-forest-700 hover:text-pista-700"><Pencil className="w-3.5 h-3.5" /> Edit</button>
+                <button onClick={() => setDeleteTarget(addr)} className="flex items-center gap-1 text-brown-500 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
                 {!addr.is_default && (
-                  <button onClick={() => setDefault(addr.id)} className="text-pista-700 hover:underline ml-auto">Set as default</button>
+                  <button onClick={() => dispatch(setDefaultAddress(addr.id))} className="text-pista-700 hover:underline ml-auto">Set as default</button>
                 )}
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <AddressFormModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditing(null); }}
+        onSubmit={handleSubmit}
+        initial={editing}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete address?"
+        description={`This will remove "${deleteTarget?.label}" from your saved addresses.`}
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

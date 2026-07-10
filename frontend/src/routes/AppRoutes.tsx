@@ -18,6 +18,10 @@ import AddressBookPage from "@/pages/customer/AddressBookPage";
 import ProfilePage from "@/pages/customer/ProfilePage";
 import SearchResultsPage from "@/pages/customer/SearchResultsPage";
 import NotFoundPage from "@/pages/customer/NotFoundPage";
+import AboutPage from "@/pages/customer/AboutPage";
+import ContactPage from "@/pages/customer/ContactPage";
+import FAQPage from "@/pages/customer/FAQPage";
+import ReturnsPage from "@/pages/customer/ReturnsPage";
 
 import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
 import AdminProductsPage from "@/pages/admin/AdminProductsPage";
@@ -41,6 +45,10 @@ export default function AppRoutes() {
         <Route path="/search" element={<SearchResultsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/faq" element={<FAQPage />} />
+        <Route path="/returns" element={<ReturnsPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/cart" element={<CartPage />} />

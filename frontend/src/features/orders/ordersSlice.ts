@@ -1,27 +1,44 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { ORDERS, type DummyOrder } from "@/data/orders";
 
-// TODO: add createAsyncThunk actions that call services/ordersService.ts
-// and populate this slice's state (loading/success/error handling).
+const STORAGE_KEY = "prakruti_orders";
 
 export interface OrdersState {
-  items: []; // TODO: type as Order[]
-  status: "idle" | "loading" | "error";
+  items: DummyOrder[];
+}
+
+function loadPersisted(): DummyOrder[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as DummyOrder[]) : ORDERS;
+  } catch {
+    return ORDERS;
+  }
+}
+
+function persist(items: DummyOrder[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
 const initialState: OrdersState = {
-  items: [],
-  status: "idle",
+  items: loadPersisted(),
 };
 
 const ordersSlice = createSlice({
   name: "orders",
   initialState,
   reducers: {
-    // TODO: add synchronous reducers (e.g. clearCart, resetStatus)
-  },
-  extraReducers: () => {
-    // TODO: wire up async thunk lifecycle actions
+    createOrder(state, action: PayloadAction<DummyOrder>) {
+      state.items.unshift(action.payload);
+      persist(state.items);
+    },
+    updateOrderStatus(state, action: PayloadAction<{ id: string; status: DummyOrder["status"] }>) {
+      const order = state.items.find((o) => o.id === action.payload.id);
+      if (order) order.status = action.payload.status;
+      persist(state.items);
+    },
   },
 });
 
+export const { createOrder, updateOrderStatus } = ordersSlice.actions;
 export default ordersSlice.reducer;

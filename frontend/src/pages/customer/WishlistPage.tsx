@@ -1,24 +1,44 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Heart, ShoppingCart, Trash2, Leaf } from "lucide-react";
 import PriceTag from "@/components/common/PriceTag";
 import EmptyState from "@/components/common/EmptyState";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
-import { WISHLIST_ITEMS } from "@/data/misc";
-import { Link } from "react-router-dom";
+import Skeleton from "@/components/common/Skeleton";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { removeFromWishlist } from "@/features/wishlist/wishlistSlice";
+import { addToCart } from "@/features/cart/cartSlice";
+import { useLoading } from "@/hooks/useLoading";
 
 export default function WishlistPage() {
-  const [items, setItems] = useState(WISHLIST_ITEMS);
+  const items = useAppSelector((s) => s.wishlist.items);
+  const dispatch = useAppDispatch();
   const [movedIds, setMovedIds] = useState<string[]>([]);
   const navigate = useNavigate();
+  const loading = useLoading(350);
 
-  function remove(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  function moveToCart(id: string, product: (typeof items)[number]["product"]) {
+    dispatch(addToCart({ product, quantity: 1 }));
+    setMovedIds((prev) => [...prev, id]);
+    setTimeout(() => dispatch(removeFromWishlist(id)), 900);
   }
 
-  function moveToCart(id: string) {
-    setMovedIds((prev) => [...prev, id]);
-    setTimeout(() => setItems((prev) => prev.filter((i) => i.id !== id)), 900);
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-3xl bg-white shadow-soft p-4 flex gap-4">
+              <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-4/5" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (items.length === 0) {
@@ -51,12 +71,13 @@ export default function WishlistPage() {
                 <div className="mt-1"><PriceTag price={item.product.price} discountPrice={item.product.discount_price} size="sm" /></div>
                 <div className="flex items-center gap-3 mt-2.5">
                   <button
-                    onClick={() => moveToCart(item.id)}
+                    onClick={() => moveToCart(item.id, item.product)}
+                    disabled={moved}
                     className={`text-xs font-semibold flex items-center gap-1 ${moved ? "text-pista-700" : "text-forest-700 hover:text-pista-700"}`}
                   >
                     <ShoppingCart className="w-3.5 h-3.5" /> {moved ? "Moved!" : "Move to Cart"}
                   </button>
-                  <button onClick={() => remove(item.id)} className="text-xs text-brown-500 hover:text-red-600 flex items-center gap-1">
+                  <button onClick={() => dispatch(removeFromWishlist(item.id))} className="text-xs text-brown-500 hover:text-red-600 flex items-center gap-1">
                     <Trash2 className="w-3.5 h-3.5" /> Remove
                   </button>
                 </div>

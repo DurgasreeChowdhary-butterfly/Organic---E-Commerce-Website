@@ -4,7 +4,9 @@ import { SlidersHorizontal, X } from "lucide-react";
 import ProductGrid from "@/components/product/ProductGrid";
 import ProductFilters, { type FilterState } from "@/components/product/ProductFilters";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
+import { ProductGridSkeleton } from "@/components/common/Skeleton";
 import { PRODUCTS, CATEGORIES } from "@/data/products";
+import { useLoading } from "@/hooks/useLoading";
 
 const SORT_OPTIONS = [
   { value: "popular", label: "Popularity" },
@@ -16,14 +18,16 @@ const SORT_OPTIONS = [
 export default function ProductListingPage() {
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get("category");
+  const filterParam = searchParams.get("filter");
   const [sort, setSort] = useState("popular");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     categories: categoryParam ? [categoryParam] : [],
     maxPrice: 800,
-    bestSellerOnly: false,
-    newArrivalOnly: false,
+    bestSellerOnly: filterParam === "best-seller",
+    newArrivalOnly: filterParam === "new-arrival",
   });
+  const loading = useLoading(300);
 
   const activeCategory = CATEGORIES.find((c) => filters.categories.length === 1 && filters.categories[0] === c.slug);
 
@@ -88,7 +92,7 @@ export default function ProductListingPage() {
               {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
-          <ProductGrid products={filtered} />
+          {loading ? <ProductGridSkeleton /> : <ProductGrid products={filtered} />}
         </div>
       </div>
     </div>

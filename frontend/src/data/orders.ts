@@ -44,7 +44,7 @@ export interface DummyOrder extends Order {
 
 const STATUS_FLOW: OrderStatus[] = ["confirmed", "packed", "shipped", "out_for_delivery", "delivered"];
 
-function buildTimeline(current: OrderStatus): DummyOrder["timeline"] {
+export function buildTimeline(current: OrderStatus): DummyOrder["timeline"] {
   const idx = STATUS_FLOW.indexOf(current);
   return STATUS_FLOW.map((status, i) => ({
     status,

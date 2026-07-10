@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Leaf, Droplet, Wheat, Nut, Flame, Truck, ShieldCheck, Sparkles, Star, Mail } from "lucide-react";
 import ProductGrid from "@/components/product/ProductGrid";
 import SectionHeading from "@/components/common/SectionHeading";
@@ -27,6 +27,7 @@ export default function HomePage() {
   const [ringActive, setRingActive] = useState(0);
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const interval = setInterval(() => setRingActive((i) => (i + 1) % HARVEST_RING.length), 2200);
@@ -50,7 +51,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap items-center gap-4">
             <Link to="/products"><Button size="lg" icon={<ArrowRight className="w-4 h-4" />}>Shop the Harvest</Button></Link>
-            <Button size="lg" variant="outline">Our Story</Button>
+            <Link to="/about"><Button size="lg" variant="outline">Our Story</Button></Link>
           </div>
           <div className="flex gap-8 mt-10">
             <div><div className="text-2xl font-display text-forest-700">250+</div><div className="text-xs text-brown-500">Partner Farms</div></div>
@@ -128,13 +129,13 @@ export default function HomePage() {
 
       {/* ---------- Best Sellers ---------- */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-10">
-        <SectionHeading eyebrow="Curated for you" title="Best Sellers" action={{ label: "View all" }} />
+        <SectionHeading eyebrow="Curated for you" title="Best Sellers" action={{ label: "View all", onClick: () => navigate("/products?filter=best-seller") }} />
         <ProductGrid products={BEST_SELLERS} />
       </section>
 
       {/* ---------- New Arrivals ---------- */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-10">
-        <SectionHeading eyebrow="Just landed" title="New Arrivals" action={{ label: "View all" }} />
+        <SectionHeading eyebrow="Just landed" title="New Arrivals" action={{ label: "View all", onClick: () => navigate("/products?filter=new-arrival") }} />
         <ProductGrid products={NEW_ARRIVALS} />
       </section>
 

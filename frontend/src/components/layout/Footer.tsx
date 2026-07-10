@@ -60,7 +60,10 @@ export default function Footer() {
           <div>
             <div className="font-semibold text-white mb-3">Company</div>
             <div className="space-y-2 text-pista-100/80">
-              <div>Our Story</div><div>Farm Partners</div><div>Certifications</div><div>Contact</div>
+              <div><Link to="/about" className="hover:text-white">Our Story</Link></div>
+              <div><Link to="/about#farm-partners" className="hover:text-white">Farm Partners</Link></div>
+              <div><Link to="/about#certifications" className="hover:text-white">Certifications</Link></div>
+              <div><Link to="/contact" className="hover:text-white">Contact</Link></div>
             </div>
           </div>
 
@@ -68,9 +71,13 @@ export default function Footer() {
             <div className="font-semibold text-white mb-3">Support</div>
             <div className="space-y-2 text-pista-100/80">
               <div><Link to="/orders" className="hover:text-white">Track Order</Link></div>
-              <div>Returns</div>
-              <div>WhatsApp Us</div>
-              <div>FAQs</div>
+              <div><Link to="/returns" className="hover:text-white">Returns</Link></div>
+              <div>
+                <a href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999"}`} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                  WhatsApp Us
+                </a>
+              </div>
+              <div><Link to="/faq" className="hover:text-white">FAQs</Link></div>
             </div>
           </div>
         </div>

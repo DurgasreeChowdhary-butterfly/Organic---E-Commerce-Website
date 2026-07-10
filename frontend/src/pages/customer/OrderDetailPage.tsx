@@ -2,12 +2,26 @@ import { useParams, Link } from "react-router-dom";
 import { Check, Download, Leaf, MapPin, SearchX } from "lucide-react";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import EmptyState from "@/components/common/EmptyState";
-import { ORDERS, STATUS_LABEL, STATUS_COLOR } from "@/data/orders";
+import Skeleton from "@/components/common/Skeleton";
+import { STATUS_LABEL, STATUS_COLOR } from "@/data/orders";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { downloadInvoice } from "@/utils/downloadInvoice";
+import { useAppSelector } from "@/store/hooks";
+import { useLoading } from "@/hooks/useLoading";
 
 export default function OrderDetailPage() {
   const { orderId } = useParams();
-  const order = ORDERS.find((o) => o.id === orderId);
+  const order = useAppSelector((s) => s.orders.items.find((o) => o.id === orderId));
+  const loading = useLoading(300);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-6">
+        <Skeleton className="h-24 rounded-3xl" />
+        <Skeleton className="h-40 rounded-3xl" />
+      </div>
+    );
+  }
 
   if (!order) {
     return (
@@ -28,7 +42,10 @@ export default function OrderDetailPage() {
           <h1 className="font-display text-2xl text-forest-700">{order.order_number}</h1>
           <p className="text-xs text-brown-500">Placed on {new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
         </div>
-        <button className="flex items-center gap-1.5 text-sm font-semibold text-forest-700 border-2 border-beige rounded-full px-4 py-2 hover:border-pista-500">
+        <button
+          onClick={() => downloadInvoice(order)}
+          className="flex items-center gap-1.5 text-sm font-semibold text-forest-700 border-2 border-beige rounded-full px-4 py-2 hover:border-pista-500 transition-colors"
+        >
           <Download className="w-4 h-4" /> Download Invoice
         </button>
       </div>

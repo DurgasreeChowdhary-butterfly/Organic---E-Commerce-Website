@@ -1,15 +1,30 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PackageSearch, ChevronRight } from "lucide-react";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import EmptyState from "@/components/common/EmptyState";
-import { ORDERS, STATUS_LABEL, STATUS_COLOR } from "@/data/orders";
+import Skeleton from "@/components/common/Skeleton";
+import { STATUS_LABEL, STATUS_COLOR } from "@/data/orders";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { useAppSelector } from "@/store/hooks";
+import { useLoading } from "@/hooks/useLoading";
 
 export default function OrderHistoryPage() {
-  if (ORDERS.length === 0) {
+  const orders = useAppSelector((s) => s.orders.items);
+  const navigate = useNavigate();
+  const loading = useLoading(350);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-4">
+        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 rounded-3xl" />)}
+      </div>
+    );
+  }
+
+  if (orders.length === 0) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-10">
-        <EmptyState icon={PackageSearch} title="No orders yet" description="Once you place an order, you'll be able to track it here." actionLabel="Start Shopping" />
+        <EmptyState icon={PackageSearch} title="No orders yet" description="Once you place an order, you'll be able to track it here." actionLabel="Start Shopping" onAction={() => navigate("/products")} />
       </div>
     );
   }
@@ -20,7 +35,7 @@ export default function OrderHistoryPage() {
       <h1 className="font-display text-2xl md:text-3xl text-forest-700 mb-6">My Orders</h1>
 
       <div className="space-y-4">
-        {ORDERS.map((order) => (
+        {orders.map((order) => (
           <Link
             key={order.id}
             to={`/orders/${order.id}`}

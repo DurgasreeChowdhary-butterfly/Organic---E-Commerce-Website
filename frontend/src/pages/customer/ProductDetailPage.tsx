@@ -12,6 +12,11 @@ import Button from "@/components/common/Button";
 import EmptyState from "@/components/common/EmptyState";
 import { getProductBySlug, getRelatedProducts, CATEGORIES } from "@/data/products";
 import { SearchX } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { addToCart } from "@/features/cart/cartSlice";
+import { toggleWishlist } from "@/features/wishlist/wishlistSlice";
+import Skeleton from "@/components/common/Skeleton";
+import { useLoading } from "@/hooks/useLoading";
 
 const DUMMY_REVIEWS = [
   { name: "Meera K.", rating: 5, text: "Excellent quality, exactly as described. Will reorder." },
@@ -22,10 +27,29 @@ const DUMMY_REVIEWS = [
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const product = slug ? getProductBySlug(slug) : undefined;
+  const dispatch = useAppDispatch();
+  const wishlisted = useAppSelector((s) => (product ? s.wishlist.items.some((i) => i.product.id === product.id) : false));
   const [quantity, setQuantity] = useState(1);
-  const [wishlisted, setWishlisted] = useState(false);
   const [added, setAdded] = useState(false);
   const [tab, setTab] = useState<"description" | "specs" | "reviews">("description");
+  const loading = useLoading(300);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+        <div className="grid md:grid-cols-2 gap-10">
+          <Skeleton className="aspect-square rounded-3xl" />
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-8 w-1/4" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -40,8 +64,14 @@ export default function ProductDetailPage() {
   const outOfStock = product.stock_quantity === 0;
 
   function handleAddToCart() {
+    if (outOfStock) return;
+    dispatch(addToCart({ product: product!, quantity }));
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+  }
+
+  function handleToggleWishlist() {
+    dispatch(toggleWishlist(product!));
   }
 
   return (
@@ -88,7 +118,7 @@ export default function ProductDetailPage() {
               {added ? "Added to Cart" : "Add to Cart"}
             </Button>
             <button
-              onClick={() => setWishlisted(!wishlisted)}
+              onClick={handleToggleWishlist}
               className="w-12 h-12 rounded-full border-2 border-beige flex items-center justify-center shrink-0 hover:border-soft-orange transition-colors"
               aria-label="Toggle wishlist"
             >

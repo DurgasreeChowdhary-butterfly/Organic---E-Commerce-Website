@@ -1,31 +1,53 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import type { User } from "@/types";
 
-// TODO: add createAsyncThunk actions that call services/authService.ts
-// and populate this slice's state (loading/success/error handling).
+const STORAGE_KEY = "prakruti_auth_user";
+
+function loadPersistedUser(): User | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistUser(user: User | null) {
+  if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  else localStorage.removeItem(STORAGE_KEY);
+}
 
 export interface AuthState {
-  user: null; // TODO: type as User
-  accessToken: string | null;
-  refreshToken: string | null;
-  status: "idle" | "loading" | "error";
+  user: User | null;
+  isAuthenticated: boolean;
 }
 
 const initialState: AuthState = {
-  user: null,
-  accessToken: null,
-  refreshToken: null,
-  status: "idle",
+  user: loadPersistedUser(),
+  isAuthenticated: !!loadPersistedUser(),
 };
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    // TODO: add synchronous reducers (e.g. clearCart, resetStatus)
-  },
-  extraReducers: () => {
-    // TODO: wire up async thunk lifecycle actions
+    login(state, action: PayloadAction<User>) {
+      state.user = action.payload;
+      state.isAuthenticated = true;
+      persistUser(action.payload);
+    },
+    logout(state) {
+      state.user = null;
+      state.isAuthenticated = false;
+      persistUser(null);
+    },
+    updateProfile(state, action: PayloadAction<Partial<User>>) {
+      if (!state.user) return;
+      state.user = { ...state.user, ...action.payload };
+      persistUser(state.user);
+    },
   },
 });
 
+export const { login, logout, updateProfile } = authSlice.actions;
 export default authSlice.reducer;

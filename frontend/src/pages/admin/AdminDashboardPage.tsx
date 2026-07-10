@@ -1,12 +1,28 @@
+import { Link } from "react-router-dom";
 import { IndianRupee, ShoppingBag, Users, Package, TrendingUp } from "lucide-react";
 import StatCard from "@/components/admin/StatCard";
 import LowStockAlert from "@/components/admin/LowStockAlert";
+import Skeleton from "@/components/common/Skeleton";
 import { DASHBOARD_STATS, REVENUE_TREND, ADMIN_ORDERS } from "@/data/admin";
 import { STATUS_LABEL, STATUS_COLOR } from "@/data/orders";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { useLoading } from "@/hooks/useLoading";
 
 export default function AdminDashboardPage() {
   const maxRevenue = Math.max(...REVENUE_TREND.map((r) => r.revenue));
+  const loading = useLoading(300);
+
+  if (loading) {
+    return (
+      <div>
+        <Skeleton className="h-8 w-48 mb-6" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-3xl" />)}
+        </div>
+        <Skeleton className="h-64 rounded-3xl" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -18,10 +34,10 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Revenue (30d)" value={DASHBOARD_STATS.revenue.value} change={DASHBOARD_STATS.revenue.change} trend={DASHBOARD_STATS.revenue.trend} icon={IndianRupee} />
-        <StatCard label="Orders" value={DASHBOARD_STATS.orders.value} change={DASHBOARD_STATS.orders.change} trend={DASHBOARD_STATS.orders.trend} icon={ShoppingBag} />
-        <StatCard label="Customers" value={DASHBOARD_STATS.customers.value} change={DASHBOARD_STATS.customers.change} trend={DASHBOARD_STATS.customers.trend} icon={Users} />
-        <StatCard label="Products" value={DASHBOARD_STATS.products.value} change={DASHBOARD_STATS.products.change} trend={DASHBOARD_STATS.products.trend} icon={Package} />
+        <StatCard label="Revenue (30d)" value={DASHBOARD_STATS.revenue.value} change={DASHBOARD_STATS.revenue.change} trend={DASHBOARD_STATS.revenue.trend} icon={IndianRupee} to="/admin/orders" />
+        <StatCard label="Orders" value={DASHBOARD_STATS.orders.value} change={DASHBOARD_STATS.orders.change} trend={DASHBOARD_STATS.orders.trend} icon={ShoppingBag} to="/admin/orders" />
+        <StatCard label="Customers" value={DASHBOARD_STATS.customers.value} change={DASHBOARD_STATS.customers.change} trend={DASHBOARD_STATS.customers.trend} icon={Users} to="/admin/customers" />
+        <StatCard label="Products" value={DASHBOARD_STATS.products.value} change={DASHBOARD_STATS.products.change} trend={DASHBOARD_STATS.products.trend} icon={Package} to="/admin/products" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -50,10 +66,13 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="rounded-3xl bg-white shadow-soft p-6 mt-6">
-        <h2 className="font-semibold text-forest-700 mb-4">Recent Orders</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-forest-700">Recent Orders</h2>
+          <Link to="/admin/orders" className="text-xs font-semibold text-pista-700 hover:underline">View all →</Link>
+        </div>
         <div className="space-y-3">
           {ADMIN_ORDERS.slice(0, 5).map((o) => (
-            <div key={o.id} className="flex items-center justify-between text-sm border-b border-beige/60 last:border-0 pb-3 last:pb-0">
+            <Link key={o.id} to="/admin/orders" className="flex items-center justify-between text-sm border-b border-beige/60 last:border-0 pb-3 last:pb-0 hover:bg-pista-50/40 -mx-2 px-2 rounded-lg transition-colors">
               <div>
                 <p className="font-medium text-forest-700">{o.order_number}</p>
                 <p className="text-xs text-brown-500">{o.items.length} item{o.items.length > 1 ? "s" : ""}</p>
@@ -62,7 +81,7 @@ export default function AdminDashboardPage() {
                 {STATUS_LABEL[o.status]}
               </span>
               <span className="font-semibold text-forest-700">{formatCurrency(o.total_amount)}</span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

@@ -4,11 +4,12 @@ import cartReducer from "@/features/cart/cartSlice";
 import wishlistReducer from "@/features/wishlist/wishlistSlice";
 import productsReducer from "@/features/products/productsSlice";
 import ordersReducer from "@/features/orders/ordersSlice";
+import addressesReducer from "@/features/addresses/addressesSlice";
 
 /**
  * Root Redux store. Each feature owns its own slice under src/features/*.
- * TODO: add RTK Query API slice(s) for data fetching/caching if preferred
- * over the axios-based services/ layer.
+ * All slices are backed by dummy data (src/data/*) and persist to
+ * localStorage so state survives a refresh — there is no real backend yet.
  */
 export const store = configureStore({
   reducer: {
@@ -17,6 +18,7 @@ export const store = configureStore({
     wishlist: wishlistReducer,
     products: productsReducer,
     orders: ordersReducer,
+    addresses: addressesReducer,
   },
 });
 

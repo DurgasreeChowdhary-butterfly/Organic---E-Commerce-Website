@@ -1,18 +1,16 @@
-import { createSlice } from "@reduxjs/toolkit";
-
-// TODO: add createAsyncThunk actions that call services/productsService.ts
-// and populate this slice's state (loading/success/error handling).
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { PRODUCTS, CATEGORIES } from "@/data/products";
 
 export interface ProductsState {
-  items: []; // TODO: type as Product[]
-  categories: [];
+  items: typeof PRODUCTS;
+  categories: typeof CATEGORIES;
   filters: Record<string, unknown>;
   status: "idle" | "loading" | "error";
 }
 
 const initialState: ProductsState = {
-  items: [],
-  categories: [],
+  items: PRODUCTS,
+  categories: CATEGORIES,
   filters: {},
   status: "idle",
 };
@@ -21,11 +19,11 @@ const productsSlice = createSlice({
   name: "products",
   initialState,
   reducers: {
-    // TODO: add synchronous reducers (e.g. clearCart, resetStatus)
-  },
-  extraReducers: () => {
-    // TODO: wire up async thunk lifecycle actions
+    setFilters(state, action: PayloadAction<Record<string, unknown>>) {
+      state.filters = action.payload;
+    },
   },
 });
 
+export const { setFilters } = productsSlice.actions;
 export default productsSlice.reducer;

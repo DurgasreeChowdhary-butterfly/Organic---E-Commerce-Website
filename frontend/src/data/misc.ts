@@ -1,17 +1,3 @@
-import { PRODUCTS } from "./products";
-
-export const CART_ITEMS = [
-  { id: "ci1", product: PRODUCTS[0], quantity: 1 },
-  { id: "ci2", product: PRODUCTS[4], quantity: 2 },
-  { id: "ci3", product: PRODUCTS[3], quantity: 1 },
-];
-
-export const WISHLIST_ITEMS = [
-  { id: "wi1", product: PRODUCTS[5] },
-  { id: "wi2", product: PRODUCTS[9] },
-  { id: "wi3", product: PRODUCTS[11] },
-];
-
 export const TESTIMONIALS = [
   { id: "t1", name: "Ananya R.", city: "Bengaluru", rating: 5, quote: "The mustard oil tastes like what my grandmother used to press at home. Genuinely different quality." },
   { id: "t2", name: "Karthik S.", city: "Chennai", rating: 5, quote: "Packaging feels premium and the millets are visibly cleaner than what I used to buy locally." },

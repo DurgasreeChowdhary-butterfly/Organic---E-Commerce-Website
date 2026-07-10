@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { Link } from "react-router-dom";
 import clsx from "clsx";
 import type { LucideIcon } from "lucide-react";
 
@@ -8,12 +9,13 @@ interface StatCardProps {
   change?: string;
   trend?: "up" | "down";
   icon?: LucideIcon;
+  to?: string;
 }
 
-/** Dashboard metric card (Revenue, Orders, Customers, etc). */
-export default function StatCard({ label, value, change, trend, icon: Icon }: StatCardProps) {
-  return (
-    <div className="rounded-3xl bg-white shadow-soft p-6 hover:shadow-glass transition-shadow">
+/** Dashboard metric card (Revenue, Orders, Customers, etc). Links to a detail page when `to` is set. */
+export default function StatCard({ label, value, change, trend, icon: Icon, to }: StatCardProps) {
+  const content = (
+    <>
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-brown-500 font-medium">{label}</span>
         {Icon && (
@@ -29,6 +31,10 @@ export default function StatCard({ label, value, change, trend, icon: Icon }: St
           {change}
         </div>
       )}
-    </div>
+    </>
   );
+
+  const className = "block rounded-3xl bg-white shadow-soft p-6 hover:shadow-glass transition-shadow";
+
+  return to ? <Link to={to} className={className}>{content}</Link> : <div className={className}>{content}</div>;
 }

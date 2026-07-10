@@ -6,6 +6,9 @@ import type { DummyProduct } from "@/data/products";
 import PriceTag from "@/components/common/PriceTag";
 import Badge from "@/components/common/Badge";
 import StarRating from "@/components/common/StarRating";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { addToCart } from "@/features/cart/cartSlice";
+import { toggleWishlist } from "@/features/wishlist/wishlistSlice";
 
 interface ProductCardProps {
   product: DummyProduct;
@@ -13,15 +16,22 @@ interface ProductCardProps {
 
 /** Grid card used in listings, featured sections, related products. Dummy-data driven. */
 export default function ProductCard({ product }: ProductCardProps) {
-  const [wishlisted, setWishlisted] = useState(false);
+  const dispatch = useAppDispatch();
+  const wishlisted = useAppSelector((s) => s.wishlist.items.some((i) => i.product.id === product.id));
   const [added, setAdded] = useState(false);
   const outOfStock = product.stock_quantity === 0;
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
     if (outOfStock) return;
+    dispatch(addToCart({ product, quantity: 1 }));
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
+  }
+
+  function handleToggleWishlist(e: React.MouseEvent) {
+    e.preventDefault();
+    dispatch(toggleWishlist(product));
   }
 
   return (
@@ -50,8 +60,11 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
 
         <button
-          onClick={(e) => { e.preventDefault(); setWishlisted((w) => !w); }}
-          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={handleToggleWishlist}
+          className={clsx(
+            "absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center transition-opacity",
+            wishlisted ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
           aria-label="Toggle wishlist"
         >
           <Heart className={clsx("w-4 h-4 transition-colors", wishlisted ? "fill-soft-orange text-soft-orange" : "text-forest-700")} />

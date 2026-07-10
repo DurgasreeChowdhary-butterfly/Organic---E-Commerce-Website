@@ -1,16 +1,36 @@
-import { useState } from "react";
-import { Eye } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Eye, Search, Users } from "lucide-react";
 import { ADMIN_CUSTOMERS } from "@/data/admin";
 import { formatCurrency } from "@/utils/formatCurrency";
+import EmptyState from "@/components/common/EmptyState";
+import { TableRowsSkeleton } from "@/components/common/Skeleton";
+import { useLoading } from "@/hooks/useLoading";
 
 export default function AdminCustomersPage() {
   const [selected, setSelected] = useState<typeof ADMIN_CUSTOMERS[number] | null>(null);
+  const [search, setSearch] = useState("");
+  const loading = useLoading(300);
+
+  const filtered = useMemo(
+    () => ADMIN_CUSTOMERS.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase())),
+    [search]
+  );
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="font-display text-2xl text-forest-700">Customers</h1>
         <p className="text-sm text-brown-500">{ADMIN_CUSTOMERS.length} registered customers.</p>
+      </div>
+
+      <div className="flex items-center gap-2 rounded-full px-4 py-2.5 bg-white shadow-soft w-full max-w-xs mb-5">
+        <Search className="w-4 h-4 text-brown-500 shrink-0" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search customers..."
+          className="bg-transparent text-sm outline-none w-full placeholder:text-brown-500/70"
+        />
       </div>
 
       <div className="rounded-3xl bg-white shadow-soft overflow-hidden">
@@ -26,31 +46,39 @@ export default function AdminCustomersPage() {
                 <th className="px-5 py-3 font-medium text-right">Details</th>
               </tr>
             </thead>
-            <tbody>
-              {ADMIN_CUSTOMERS.map((c) => (
-                <tr key={c.id} className="border-b border-beige/60 last:border-0 hover:bg-pista-50/40">
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-forest-700 text-white flex items-center justify-center text-xs font-semibold shrink-0">
-                        {c.name.charAt(0)}
+            {!loading && (
+              <tbody>
+                {filtered.map((c) => (
+                  <tr key={c.id} className="border-b border-beige/60 last:border-0 hover:bg-pista-50/40">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-forest-700 text-white flex items-center justify-center text-xs font-semibold shrink-0">
+                          {c.name.charAt(0)}
+                        </div>
+                        <span className="font-medium text-forest-700">{c.name}</span>
                       </div>
-                      <span className="font-medium text-forest-700">{c.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-brown-500">{c.phone}</td>
-                  <td className="px-5 py-3 text-forest-700 font-medium">{c.orders}</td>
-                  <td className="px-5 py-3 text-forest-700 font-medium">{formatCurrency(c.totalSpent)}</td>
-                  <td className="px-5 py-3 text-brown-500">{c.joined}</td>
-                  <td className="px-5 py-3 text-right">
-                    <button onClick={() => setSelected(c)} className="p-2 rounded-lg hover:bg-pista-50 text-forest-700 inline-flex" aria-label="View details">
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+                    </td>
+                    <td className="px-5 py-3 text-brown-500">{c.phone}</td>
+                    <td className="px-5 py-3 text-forest-700 font-medium">{c.orders}</td>
+                    <td className="px-5 py-3 text-forest-700 font-medium">{formatCurrency(c.totalSpent)}</td>
+                    <td className="px-5 py-3 text-brown-500">{c.joined}</td>
+                    <td className="px-5 py-3 text-right">
+                      <button onClick={() => setSelected(c)} className="p-2 rounded-lg hover:bg-pista-50 text-forest-700 inline-flex" aria-label="View details">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            )}
           </table>
         </div>
+        {loading && <TableRowsSkeleton rows={5} cols={6} />}
+        {!loading && filtered.length === 0 && (
+          <div className="py-10">
+            <EmptyState icon={Users} title="No customers found" description="Try a different search term." />
+          </div>
+        )}
       </div>
 
       {selected && (

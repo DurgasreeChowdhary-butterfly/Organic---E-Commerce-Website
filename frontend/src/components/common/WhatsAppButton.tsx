@@ -1,9 +1,6 @@
 import { MessageCircle } from "lucide-react";
 
-/**
- * Floating WhatsApp support button, fixed bottom-right on every page.
- * TODO: read number from VITE_WHATSAPP_NUMBER and deep-link to wa.me.
- */
+/** Floating WhatsApp support button, fixed bottom-right on every page. */
 export default function WhatsAppButton() {
   const number = import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999";
 
