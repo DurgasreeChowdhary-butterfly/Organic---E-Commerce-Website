@@ -15,12 +15,24 @@ from app.db.session import get_db
 from app.api.deps import get_current_active_admin
 from app.crud import category as category_crud
 from app.crud import coupon as coupon_crud
+from app.crud import dashboard as dashboard_crud
+from app.crud import inventory as inventory_crud
 from app.crud import order as order_crud
 from app.crud import payment as payment_crud
 from app.crud import product as product_crud
 from app.models.order import OrderStatus
 from app.models.product import ProductImage
+from app.models.user import User
 from app.schemas.coupon import CouponCreate, CouponListResponse, CouponRead, CouponUpdate
+from app.schemas.dashboard import DashboardAnalyticsResponse, LowStockAlertRead, RecentOrderRead, TopSellingProductRead
+from app.schemas.inventory import (
+    InventoryItemRead,
+    InventoryListResponse,
+    InventoryTransactionListResponse,
+    InventoryTransactionRead,
+    StockAdjustmentRequest,
+    StockCorrectionRequest,
+)
 from app.schemas.order import (
     AdminOrderListItemRead,
     AdminOrderListResponse,
@@ -46,10 +58,35 @@ router = APIRouter(dependencies=[Depends(get_current_active_admin)])
 
 
 # --- Dashboard ---
-@router.get("/dashboard/stats")
-def get_dashboard_stats(db: Session = Depends(get_db)):
-    """Revenue, orders, customers, products, sales, low-stock summary. TODO: implement."""
-    raise NotImplementedError
+@router.get("/dashboard/stats", response_model=DashboardAnalyticsResponse)
+def get_dashboard_stats(trend_days: int = Query(7, ge=1, le=90), db: Session = Depends(get_db)):
+    """Revenue, order/customer/product counts, recent orders, top sellers,
+    low-stock alerts, and a daily sales trend — all computed live from
+    Order/OrderItem/Product/User/InventoryTransaction data."""
+    stats = dashboard_crud.get_stats(db)
+    recent_orders = dashboard_crud.get_recent_orders(db, limit=5)
+    top_selling = dashboard_crud.get_top_selling_products(db, limit=5)
+    low_stock = inventory_crud.list_low_stock_products(db, limit=10)
+    trend = dashboard_crud.get_sales_trend(db, days=trend_days)
+
+    return DashboardAnalyticsResponse(
+        stats=stats,
+        recent_orders=[
+            RecentOrderRead(
+                id=o.id, order_number=o.order_number, status=o.status, total_amount=float(o.total_amount),
+                created_at=o.created_at, customer_name=o.user.full_name,
+            )
+            for o in recent_orders
+        ],
+        top_selling_products=[TopSellingProductRead(**p) for p in top_selling],
+        low_stock_alerts=[
+            LowStockAlertRead(
+                id=p.id, name=p.name, sku=p.sku, stock_quantity=p.stock_quantity, low_stock_threshold=p.low_stock_threshold
+            )
+            for p in low_stock
+        ],
+        sales_trend=trend,
+    )
 
 
 # --- Product management ---
@@ -300,28 +337,130 @@ def admin_get_customer(customer_id: str, db: Session = Depends(get_db)):
 
 
 # --- Inventory management ---
-@router.get("/inventory")
-def admin_get_inventory(db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
 
 
-@router.get("/inventory/low-stock")
+def _stock_status(product) -> str:
+    if product.stock_quantity == 0:
+        return "out_of_stock"
+    if product.stock_quantity <= product.low_stock_threshold:
+        return "low_stock"
+    return "in_stock"
+
+
+def _serialize_inventory_item(product, last_updated=None) -> InventoryItemRead:
+    return InventoryItemRead(
+        id=product.id,
+        name=product.name,
+        sku=product.sku,
+        category_name=product.category.name,
+        stock_quantity=product.stock_quantity,
+        low_stock_threshold=product.low_stock_threshold,
+        stock_status=_stock_status(product),
+        last_updated=last_updated or product.created_at,
+    )
+
+
+@router.get("/inventory", response_model=InventoryListResponse)
+def admin_get_inventory(
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    stock_status: Optional[str] = Query(None, pattern="^(in_stock|low_stock|out_of_stock)$"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """List all products for the inventory table, with search, category and
+    stock-status filters, and pagination."""
+    filters = inventory_crud.InventoryFilters(
+        search=search, category_slug=category, stock_status=stock_status, page=page, page_size=page_size
+    )
+    rows, total = inventory_crud.list_inventory(db, filters)
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    return InventoryListResponse(
+        items=[_serialize_inventory_item(product, last_updated) for product, last_updated in rows],
+        total=total, page=page, page_size=page_size, total_pages=total_pages,
+    )
+
+
+@router.get("/inventory/low-stock", response_model=List[InventoryItemRead])
 def admin_get_low_stock(db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+    """Products at or below their low-stock threshold (including out of stock)."""
+    products = inventory_crud.list_low_stock_products(db, limit=100)
+    return [_serialize_inventory_item(p) for p in products]
 
 
-@router.put("/inventory/{product_id}/stock")
-def admin_update_stock(product_id: str, db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+@router.post("/inventory/{product_id}/increase", response_model=InventoryItemRead)
+def admin_increase_stock(
+    product_id: uuid.UUID,
+    payload: StockAdjustmentRequest,
+    current_admin: User = Depends(get_current_active_admin),
+    db: Session = Depends(get_db),
+):
+    """Manually increase a product's stock (e.g. new stock received)."""
+    product = product_crud.get(db, product_id)
+    if product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    product = inventory_crud.increase_stock(db, product, payload.quantity, payload.reason, current_admin.id)
+    return _serialize_inventory_item(product)
 
 
-@router.get("/inventory/reports")
-def admin_inventory_reports(db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+@router.post("/inventory/{product_id}/decrease", response_model=InventoryItemRead)
+def admin_decrease_stock(
+    product_id: uuid.UUID,
+    payload: StockAdjustmentRequest,
+    current_admin: User = Depends(get_current_active_admin),
+    db: Session = Depends(get_db),
+):
+    """Manually decrease a product's stock (e.g. damaged/lost goods)."""
+    product = product_crud.get(db, product_id)
+    if product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    try:
+        product = inventory_crud.decrease_stock(db, product, payload.quantity, payload.reason, current_admin.id)
+    except inventory_crud.InsufficientStockForAdjustment:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot decrease stock below 0 (current stock: {product.stock_quantity})")
+    return _serialize_inventory_item(product)
+
+
+@router.post("/inventory/{product_id}/correct", response_model=InventoryItemRead)
+def admin_correct_stock(
+    product_id: uuid.UUID,
+    payload: StockCorrectionRequest,
+    current_admin: User = Depends(get_current_active_admin),
+    db: Session = Depends(get_db),
+):
+    """Set a product's stock to an exact known-correct value (e.g. after a physical count)."""
+    product = product_crud.get(db, product_id)
+    if product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    product = inventory_crud.correct_stock(db, product, payload.new_quantity, payload.reason, current_admin.id)
+    return _serialize_inventory_item(product)
+
+
+@router.get("/inventory/{product_id}/history", response_model=InventoryTransactionListResponse)
+def admin_get_inventory_history(
+    product_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Full audit trail of stock movements for a single product."""
+    if product_crud.get(db, product_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    items, total = inventory_crud.list_transactions(db, product_id, page, page_size)
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    return InventoryTransactionListResponse(
+        items=[
+            InventoryTransactionRead(
+                id=t.id, movement_type=t.movement_type, quantity_change=t.quantity_change,
+                stock_before=t.stock_before, stock_after=t.stock_after, reason=t.reason,
+                order_id=t.order_id, order_number=t.order.order_number if t.order else None,
+                admin_name=t.admin.full_name if t.admin else None, created_at=t.created_at,
+            )
+            for t in items
+        ],
+        total=total, page=page, page_size=page_size, total_pages=total_pages,
+    )
 
 
 # --- Coupon management ---

@@ -54,6 +54,7 @@ export interface Product {
   gst_percentage: number;
   sku: string;
   stock_quantity: number;
+  low_stock_threshold: number;
   is_active: boolean;
   is_featured: boolean;
   is_best_seller: boolean;
@@ -245,4 +246,105 @@ export interface VerifyPaymentResponse {
   amount: number;
   order_id: string;
   order_number: string;
+}
+
+export type MovementType =
+  | "order"
+  | "order_cancelled"
+  | "manual_increase"
+  | "manual_decrease"
+  | "correction"
+  | "refund_restock";
+
+export interface InventoryTransaction {
+  id: string;
+  movement_type: MovementType;
+  quantity_change: number;
+  stock_before: number;
+  stock_after: number;
+  reason?: string | null;
+  order_id?: string | null;
+  order_number?: string | null;
+  admin_name?: string | null;
+  created_at: string;
+}
+
+export interface InventoryTransactionListResponse {
+  items: InventoryTransaction[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export type StockStatus = "in_stock" | "low_stock" | "out_of_stock";
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  sku: string;
+  category_name: string;
+  stock_quantity: number;
+  low_stock_threshold: number;
+  stock_status: StockStatus;
+  last_updated: string;
+}
+
+export interface InventoryListResponse {
+  items: InventoryItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface DashboardStats {
+  total_revenue: number;
+  total_orders: number;
+  total_customers: number;
+  total_products: number;
+  pending_orders: number;
+  delivered_orders: number;
+  cancelled_orders: number;
+  low_stock_products: number;
+  out_of_stock_products: number;
+}
+
+export interface RecentOrder {
+  id: string;
+  order_number: string;
+  status: OrderStatus;
+  total_amount: number;
+  created_at: string;
+  customer_name: string;
+}
+
+export interface TopSellingProduct {
+  product_id?: string | null;
+  name: string;
+  sku: string;
+  quantity_sold: number;
+  revenue: number;
+}
+
+export interface LowStockAlertItem {
+  id: string;
+  name: string;
+  sku: string;
+  stock_quantity: number;
+  low_stock_threshold: number;
+}
+
+export interface SalesTrendPoint {
+  date: string;
+  revenue: number;
+  order_count: number;
+}
+
+export interface DashboardAnalytics {
+  stats: DashboardStats;
+  recent_orders: RecentOrder[];
+  top_selling_products: TopSellingProduct[];
+  low_stock_alerts: LowStockAlertItem[];
+  sales_trend: SalesTrendPoint[];
 }

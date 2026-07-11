@@ -1,9 +1,14 @@
 import { AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { DummyProduct } from "@/data/products";
+
+interface LowStockAlertProduct {
+  id: string;
+  name: string;
+  stock_quantity: number;
+}
 
 interface LowStockAlertProps {
-  products: DummyProduct[];
+  products: LowStockAlertProduct[];
   loading?: boolean;
 }
 

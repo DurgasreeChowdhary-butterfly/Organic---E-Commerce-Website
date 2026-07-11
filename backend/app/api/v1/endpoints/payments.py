@@ -18,6 +18,7 @@ from app.crud import address as address_crud
 from app.crud import cart as cart_crud
 from app.crud import checkout as checkout_crud
 from app.crud import coupon as coupon_crud
+from app.crud import inventory as inventory_crud
 from app.crud import order as order_crud
 from app.crud import payment as payment_crud
 from app.core.config import settings
@@ -145,7 +146,17 @@ def verify_razorpay_payment(
         coupon = coupon_crud.get(db, payment.coupon_id)
         coupon_crud.redeem(db, coupon, current_user.id, payment.id)
 
-    order = order_crud.create_from_payment(db, payment)
+    try:
+        order = order_crud.create_from_payment(db, payment)
+    except inventory_crud.InsufficientStockForAdjustment:
+        # Extremely rare: stock ran out in the window between create-order's
+        # validation and payment verification. The payment has already been
+        # captured and is recorded as SUCCESS; this needs manual admin
+        # reconciliation (refund or restock) rather than a silent failure.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Payment succeeded but one or more items sold out before your order could be confirmed. Our team will contact you to resolve this.",
+        )
 
     cart = cart_crud.get_or_create_cart(db, current_user.id)
     cart_crud.clear_cart(db, cart)

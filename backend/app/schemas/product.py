@@ -80,6 +80,7 @@ class ProductUpdate(BaseModel):
 class ProductRead(ProductBase):
     id: uuid.UUID
     slug: str
+    low_stock_threshold: int
     is_best_seller: bool
     is_new_arrival: bool
     is_seasonal: bool

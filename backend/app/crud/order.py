@@ -9,8 +9,10 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.crud import cart as cart_crud
+from app.crud import inventory as inventory_crud
 from app.crud import payment as payment_crud
 from app.models.cart import Cart
+from app.models.inventory import MovementType
 from app.models.order import Order, OrderItem, OrderStatus, OrderStatusHistory
 from app.models.payment import Payment
 from app.models.product import Product
@@ -157,7 +159,9 @@ def create_from_payment(db: Session, payment: Payment) -> Order:
         if line.get("product_id"):
             product = db.get(Product, uuid.UUID(line["product_id"]))
             if product is not None:
-                product.stock_quantity = max(0, product.stock_quantity - line["quantity"])
+                inventory_crud.adjust_stock(
+                    db, product, MovementType.ORDER, -line["quantity"], order_id=order.id, commit=False
+                )
 
     db.add(OrderStatusHistory(order_id=order.id, status=OrderStatus.CONFIRMED, note="Order confirmed after successful payment"))
     db.commit()
@@ -181,7 +185,9 @@ def cancel(db: Session, order: Order, reason: Optional[str] = None) -> Order:
         if item.product_id:
             product = db.get(Product, item.product_id)
             if product is not None:
-                product.stock_quantity += item.quantity
+                inventory_crud.adjust_stock(
+                    db, product, MovementType.ORDER_CANCELLED, item.quantity, order_id=order.id, commit=False
+                )
 
     order.status = OrderStatus.CANCELLED
     order.cancelled_at = datetime.utcnow()
@@ -198,6 +204,19 @@ def refund(db: Session, order: Order, reason: Optional[str] = None) -> Order:
         raise OrderStatusIsFinal(order.status)
 
     refund_result = payment_crud.create_refund(order.razorpay_payment_id, float(order.total_amount))
+
+    # A cancelled order already had its stock restored (ORDER_CANCELLED
+    # movement) — only restock here if that hasn't already happened,
+    # otherwise the same items would be credited back twice.
+    already_restocked = order.status == OrderStatus.CANCELLED
+    if not already_restocked:
+        for item in order.items:
+            if item.product_id:
+                product = db.get(Product, item.product_id)
+                if product is not None:
+                    inventory_crud.adjust_stock(
+                        db, product, MovementType.REFUND_RESTOCK, item.quantity, order_id=order.id, commit=False
+                    )
 
     order.status = OrderStatus.REFUNDED
     order.refund_id = refund_result.get("id")

@@ -6,16 +6,20 @@ import type {
   Category,
   Coupon,
   CouponListResponse,
+  DashboardAnalytics,
   DiscountType,
+  InventoryListResponse,
+  InventoryItem,
+  InventoryTransactionListResponse,
   Order,
   OrderStatus,
   Product,
   ProductListResponse,
 } from "@/types";
 
-// TODO: implement once the Order/Dashboard modules are in scope.
-export async function getDashboardStats() {
-  throw new Error("Not implemented");
+export async function getDashboardStats(trendDays = 7): Promise<DashboardAnalytics> {
+  const { data } = await apiClient.get<DashboardAnalytics>("/admin/dashboard/stats", { params: { trend_days: trendDays } });
+  return data;
 }
 
 // ---------- Admin: Products ----------
@@ -183,5 +187,48 @@ export async function adminCancelOrder(id: string, reason?: string): Promise<Ord
 
 export async function adminRefundOrder(id: string, reason?: string): Promise<Order> {
   const { data } = await apiClient.post<Order>(`/admin/orders/${id}/refund`, { reason });
+  return data;
+}
+
+// ---------- Admin: Inventory ----------
+
+export interface AdminInventoryListParams {
+  search?: string;
+  category?: string;
+  stock_status?: "in_stock" | "low_stock" | "out_of_stock";
+  page?: number;
+  page_size?: number;
+}
+
+export async function adminListInventory(params: AdminInventoryListParams = {}): Promise<InventoryListResponse> {
+  const { data } = await apiClient.get<InventoryListResponse>("/admin/inventory", { params });
+  return data;
+}
+
+export async function adminGetLowStock(): Promise<InventoryItem[]> {
+  const { data } = await apiClient.get<InventoryItem[]>("/admin/inventory/low-stock");
+  return data;
+}
+
+export async function adminIncreaseStock(productId: string, quantity: number, reason: string): Promise<InventoryItem> {
+  const { data } = await apiClient.post<InventoryItem>(`/admin/inventory/${productId}/increase`, { quantity, reason });
+  return data;
+}
+
+export async function adminDecreaseStock(productId: string, quantity: number, reason: string): Promise<InventoryItem> {
+  const { data } = await apiClient.post<InventoryItem>(`/admin/inventory/${productId}/decrease`, { quantity, reason });
+  return data;
+}
+
+export async function adminCorrectStock(productId: string, newQuantity: number, reason: string): Promise<InventoryItem> {
+  const { data } = await apiClient.post<InventoryItem>(`/admin/inventory/${productId}/correct`, { new_quantity: newQuantity, reason });
+  return data;
+}
+
+export async function adminGetInventoryHistory(
+  productId: string,
+  params: { page?: number; page_size?: number } = {}
+): Promise<InventoryTransactionListResponse> {
+  const { data } = await apiClient.get<InventoryTransactionListResponse>(`/admin/inventory/${productId}/history`, { params });
   return data;
 }
