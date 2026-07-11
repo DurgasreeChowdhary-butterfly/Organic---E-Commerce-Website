@@ -173,19 +173,19 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 sm:py-8">
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Cart", to: "/cart" }, { label: "Checkout" }]} />
-      <h1 className="font-display text-2xl md:text-3xl text-forest-700 mb-6">Checkout</h1>
+      <h1 className="font-display text-lg sm:text-2xl md:text-3xl text-forest-700 mb-3 sm:mb-6">Checkout</h1>
 
       {checkoutError && (
-        <div className="mb-6 flex items-center gap-2 rounded-2xl bg-red-50 text-red-700 text-sm px-4 py-3">
+        <div className="mb-4 sm:mb-6 flex items-center gap-2 rounded-2xl bg-red-50 text-red-700 text-sm px-4 py-3">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span className="flex-1">{checkoutError}</span>
         </div>
       )}
 
       {stockIssues.length > 0 && (
-        <div className="mb-6 flex items-center gap-2 rounded-2xl bg-soft-orange/10 text-soft-orange text-sm px-4 py-3">
+        <div className="mb-4 sm:mb-6 flex items-center gap-2 rounded-2xl bg-soft-orange/10 text-soft-orange text-sm px-4 py-3">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span className="flex-1">
             {stockIssues.length === 1 ? "One item" : `${stockIssues.length} items`} in your cart {stockIssues.length === 1 ? "has" : "have"} limited or no stock available.
@@ -194,26 +194,26 @@ export default function CheckoutPage() {
         </div>
       )}
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="min-w-0 md:col-span-2 space-y-6">
+      <div className="grid md:grid-cols-3 gap-4 sm:gap-8">
+        <div className="min-w-0 md:col-span-2 space-y-3 sm:space-y-6">
           {/* Address */}
-          <div className="rounded-3xl bg-white shadow-soft p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-forest-700 flex items-center gap-2"><MapPin className="w-4.5 h-4.5" /> Delivery Address</h2>
-              <button onClick={() => setShowAddressModal(true)} className="text-xs font-semibold text-pista-700 flex items-center gap-1 hover:underline">
+          <div className="rounded-3xl bg-white shadow-soft p-3.5 sm:p-6">
+            <div className="flex items-center justify-between mb-2.5 sm:mb-4">
+              <h2 className="font-semibold text-forest-700 text-sm sm:text-base flex items-center gap-2"><MapPin className="w-4.5 h-4.5" /> Delivery Address</h2>
+              <button onClick={() => setShowAddressModal(true)} className="text-xs font-semibold text-pista-700 flex items-center gap-1 hover:underline active:scale-95">
                 <Plus className="w-3.5 h-3.5" /> Add New
               </button>
             </div>
             {addresses.length === 0 ? (
               <p className="text-sm text-brown-500">No saved addresses. Add one to continue.</p>
             ) : (
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-2 gap-2 sm:gap-3">
                 {addresses.map((addr) => (
                   <button
                     key={addr.id}
                     onClick={() => setSelectedAddress(addr.id)}
                     className={clsx(
-                      "text-left rounded-2xl border-2 p-4 transition-colors",
+                      "text-left rounded-2xl border-2 p-3 sm:p-4 transition-colors active:scale-[0.99]",
                       selectedAddress === addr.id ? "border-pista-700 bg-pista-50" : "border-beige hover:border-pista-300"
                     )}
                   >
@@ -232,13 +232,13 @@ export default function CheckoutPage() {
           </div>
 
           {/* Items */}
-          <div className="rounded-3xl bg-white shadow-soft p-6">
-            <h2 className="font-semibold text-forest-700 mb-4">Order Items ({cartItems.length})</h2>
-            <div className="space-y-3">
+          <div className="rounded-3xl bg-white shadow-soft p-3.5 sm:p-6">
+            <h2 className="font-semibold text-forest-700 mb-2.5 sm:mb-4 text-sm sm:text-base">Order Items ({cartItems.length})</h2>
+            <div className="space-y-2 sm:space-y-3">
               {cartItems.map((item) => {
                 const hasIssue = !item.product.is_active || item.quantity > item.product.stock_quantity;
                 return (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
+                  <div key={item.id} className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-forest-700">
                       {item.product.name} <span className="text-brown-500">× {item.quantity}</span>
                       {hasIssue && <span className="ml-2 text-[11px] font-semibold text-red-600">Unavailable</span>}
@@ -251,15 +251,15 @@ export default function CheckoutPage() {
           </div>
 
           {/* Coupon */}
-          <div className="rounded-3xl bg-white shadow-soft p-6">
-            <label className="text-sm font-semibold text-forest-700 mb-2 flex items-center gap-1.5"><Tag className="w-4 h-4" /> Have a coupon?</label>
+          <div className="rounded-3xl bg-white shadow-soft p-3.5 sm:p-6">
+            <label className="text-sm font-semibold text-forest-700 mb-1.5 sm:mb-2 flex items-center gap-1.5"><Tag className="w-4 h-4" /> Have a coupon?</label>
             {coupon.code ? (
-              <div className="flex items-center justify-between rounded-2xl bg-pista-50 px-4 py-3">
+              <div className="flex items-center justify-between rounded-2xl bg-pista-50 px-3.5 py-2.5 sm:px-4 sm:py-3">
                 <div>
                   <p className="text-sm font-semibold text-pista-700 flex items-center gap-1.5"><Check className="w-3.5 h-3.5" /> {coupon.code} applied</p>
                   <p className="text-xs text-brown-500 mt-0.5">{coupon.message}</p>
                 </div>
-                <button onClick={handleRemoveCoupon} className="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1 shrink-0">
+                <button onClick={handleRemoveCoupon} className="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1 shrink-0 active:scale-95">
                   <X className="w-3.5 h-3.5" /> Remove
                 </button>
               </div>
@@ -270,12 +270,12 @@ export default function CheckoutPage() {
                   onChange={(e) => { setCouponInput(e.target.value); if (coupon.error) dispatch(clearCouponError()); }}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
                   placeholder="Enter coupon code"
-                  className="flex-1 min-w-0 rounded-full border border-beige px-4 py-2.5 text-sm outline-none focus:border-pista-500 uppercase placeholder:normal-case"
+                  className="flex-1 min-w-0 rounded-full border border-beige px-3.5 py-2 sm:px-4 sm:py-2.5 text-sm outline-none focus:border-pista-500 uppercase placeholder:normal-case"
                 />
                 <button
                   onClick={handleApplyCoupon}
                   disabled={coupon.status === "loading" || !couponInput.trim()}
-                  className="rounded-full px-5 py-2.5 text-sm font-semibold bg-forest-700 text-white shrink-0 hover:bg-forest-500 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  className="rounded-full px-4 py-2 sm:px-5 sm:py-2.5 text-sm font-semibold bg-forest-700 text-white shrink-0 hover:bg-forest-500 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {coupon.status === "loading" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
                 </button>
@@ -285,9 +285,9 @@ export default function CheckoutPage() {
           </div>
 
           {/* Payment */}
-          <div className="rounded-3xl bg-white shadow-soft p-6">
-            <h2 className="font-semibold text-forest-700 mb-4">Payment Method</h2>
-            <div className="grid sm:grid-cols-2 gap-3">
+          <div className="rounded-3xl bg-white shadow-soft p-3.5 sm:p-6">
+            <h2 className="font-semibold text-forest-700 mb-2.5 sm:mb-4 text-sm sm:text-base">Payment Method</h2>
+            <div className="grid sm:grid-cols-2 gap-2 sm:gap-3">
               {PAYMENT_METHODS.map((m) => {
                 const Icon = m.icon;
                 return (
@@ -295,18 +295,18 @@ export default function CheckoutPage() {
                     key={m.id}
                     onClick={() => setPayment(m.id)}
                     className={clsx(
-                      "flex items-center gap-3 rounded-2xl border-2 p-4 transition-colors",
+                      "flex items-center gap-2.5 sm:gap-3 rounded-2xl border-2 p-3 sm:p-4 transition-colors active:scale-[0.99]",
                       payment === m.id ? "border-pista-700 bg-pista-50" : "border-beige hover:border-pista-300"
                     )}
                   >
-                    <Icon className="w-5 h-5 text-forest-700" />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-forest-700" />
                     <span className="text-sm font-medium text-forest-700">{m.label}</span>
                     {payment === m.id && <Check className="w-4 h-4 text-pista-700 ml-auto" />}
                   </button>
                 );
               })}
             </div>
-            <p className="text-[11px] text-brown-500 mt-3">Payments are processed securely via Razorpay.</p>
+            <p className="text-[11px] text-brown-500 mt-2.5 sm:mt-3">Payments are processed securely via Razorpay.</p>
           </div>
         </div>
 

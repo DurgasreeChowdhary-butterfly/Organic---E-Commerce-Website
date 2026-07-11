@@ -58,7 +58,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Link
       to={`/products/${product.slug}`}
-      className="group block rounded-3xl bg-white p-2.5 sm:p-4 shadow-soft hover:shadow-glass transition-all duration-300 hover:-translate-y-1"
+      className="group block rounded-3xl bg-white p-2.5 sm:p-4 shadow-soft hover:shadow-glass transition-all duration-300 hover:-translate-y-1 active:scale-[0.98]"
     >
       <div
         className="relative aspect-[4/3] sm:aspect-square rounded-2xl mb-2 sm:mb-3 overflow-hidden flex items-center justify-center"
@@ -93,8 +93,8 @@ export default function ProductCard({ product }: ProductCardProps) {
           onClick={handleToggleWishlist}
           disabled={wishlistBusy}
           className={clsx(
-            "absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center transition-opacity",
-            wishlisted ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            "absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center transition-opacity opacity-100",
+            !wishlisted && "sm:opacity-0 sm:group-hover:opacity-100"
           )}
           aria-label="Toggle wishlist"
         >
@@ -115,7 +115,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         onClick={handleAddToCart}
         disabled={outOfStock || addingToCart}
         className={clsx(
-          "mt-2 sm:mt-3 w-full text-xs font-semibold py-1.5 sm:py-2.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center gap-1.5",
+          "mt-2 sm:mt-3 w-full text-xs font-semibold py-1.5 sm:py-2.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center gap-1.5 active:scale-[0.97]",
           outOfStock && "border-beige text-brown-500/50 cursor-not-allowed",
           !outOfStock && added && "bg-pista-700 border-pista-700 text-white",
           !outOfStock && !added && "border-pista-500 text-forest-700 hover:bg-pista-700 hover:border-pista-700 hover:text-white"

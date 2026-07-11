@@ -81,15 +81,15 @@ export default function HomePage() {
         </div>
 
         <div className="relative flex items-center justify-center animate-float-slow">
-          <div className="relative w-40 h-40 sm:w-72 sm:h-72 md:w-96 md:h-96 rounded-full flex items-center justify-center bg-[radial-gradient(circle,#F3F7E8_0%,#E4EECB_60%,transparent_100%)]">
-            <div className="absolute inset-3 sm:inset-6 rounded-full border-2 border-dashed border-pista-300" />
-            <div className="w-16 h-16 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full flex flex-col items-center justify-center text-center shadow-glass bg-forest-700">
-              <span className="text-[8px] sm:text-[10px] uppercase tracking-widest text-gold">This Season</span>
-              <span className="text-white text-[11px] sm:text-sm font-semibold mt-0.5 sm:mt-1">{HARVEST_RING[ringActive].label}</span>
+          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-96 md:h-96 rounded-full flex items-center justify-center bg-[radial-gradient(circle,#F3F7E8_0%,#E4EECB_60%,transparent_100%)]">
+            <div className="absolute inset-4 sm:inset-6 rounded-full border-2 border-dashed border-pista-300" />
+            <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full flex flex-col items-center justify-center text-center shadow-glass bg-forest-700">
+              <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gold">This Season</span>
+              <span className="text-white text-xs sm:text-sm font-semibold mt-0.5 sm:mt-1">{HARVEST_RING[ringActive].label}</span>
             </div>
             {HARVEST_RING.map((item, i) => {
               const angle = (i / HARVEST_RING.length) * 2 * Math.PI - Math.PI / 2;
-              const radius = isMobile ? 55 : 130;
+              const radius = isMobile ? 85 : 130;
               const x = Math.cos(angle) * radius;
               const y = Math.sin(angle) * radius;
               const Icon = item.icon;
@@ -97,13 +97,13 @@ export default function HomePage() {
               return (
                 <div
                   key={item.label}
-                  className="absolute w-8 h-8 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-500 shadow-soft"
+                  className="absolute w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-500 shadow-soft"
                   style={{
                     transform: `translate(${x}px, ${y}px) scale(${active ? 1.15 : 1})`,
                     background: active ? "#C9A227" : "#fff",
                   }}
                 >
-                  <Icon className={`w-3.5 h-3.5 sm:w-6 sm:h-6 ${active ? "text-white" : "text-pista-700"}`} />
+                  <Icon className={`w-4 h-4 sm:w-6 sm:h-6 ${active ? "text-white" : "text-pista-700"}`} />
                 </div>
               );
             })}

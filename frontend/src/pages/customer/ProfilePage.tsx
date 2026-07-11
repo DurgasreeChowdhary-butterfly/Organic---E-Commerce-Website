@@ -68,25 +68,25 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 md:px-8 py-8">
+    <div className="max-w-2xl mx-auto px-4 md:px-8 py-4 sm:py-8">
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "My Profile" }]} />
-      <h1 className="font-display text-2xl md:text-3xl text-forest-700 mb-6">My Profile</h1>
+      <h1 className="font-display text-lg sm:text-2xl md:text-3xl text-forest-700 mb-3 sm:mb-6">My Profile</h1>
 
-      <div className="rounded-3xl bg-white shadow-soft p-8">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 rounded-full bg-forest-700 text-white flex items-center justify-center text-xl font-semibold">
+      <div className="rounded-3xl bg-white shadow-soft p-4 sm:p-8">
+        <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-forest-700 text-white flex items-center justify-center text-base sm:text-xl font-semibold">
             {user.full_name.charAt(0)}
           </div>
           <div>
-            <p className="font-semibold text-forest-700">{user.full_name}</p>
+            <p className="font-semibold text-forest-700 text-sm sm:text-base">{user.full_name}</p>
             <p className="text-xs text-brown-500">{user.is_verified ? "Verified Account" : "Not Verified"}</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSave)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(onSave)} className="space-y-2.5 sm:space-y-4" noValidate>
           <div>
             <label className="text-sm font-medium text-forest-700 mb-1.5 block">Full Name</label>
-            <div className="flex items-center gap-2 rounded-xl border border-beige px-4 py-3 focus-within:border-pista-500">
+            <div className="flex items-center gap-2 rounded-xl border border-beige px-3.5 py-2.5 sm:px-4 sm:py-3 focus-within:border-pista-500">
               <User className="w-4 h-4 text-brown-500 shrink-0" />
               <input {...register("full_name")} onFocus={() => error && dispatch(clearAuthError())} className="w-full outline-none text-sm bg-transparent" />
             </div>
@@ -94,7 +94,7 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="text-sm font-medium text-forest-700 mb-1.5 block">Email</label>
-            <div className="flex items-center gap-2 rounded-xl border border-beige px-4 py-3 focus-within:border-pista-500">
+            <div className="flex items-center gap-2 rounded-xl border border-beige px-3.5 py-2.5 sm:px-4 sm:py-3 focus-within:border-pista-500">
               <Mail className="w-4 h-4 text-brown-500 shrink-0" />
               <input type="email" {...register("email")} className="w-full outline-none text-sm bg-transparent" />
             </div>
@@ -102,7 +102,7 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="text-sm font-medium text-forest-700 mb-1.5 block">Phone</label>
-            <div className="flex items-center gap-2 rounded-xl border border-beige px-4 py-3 focus-within:border-pista-500">
+            <div className="flex items-center gap-2 rounded-xl border border-beige px-3.5 py-2.5 sm:px-4 sm:py-3 focus-within:border-pista-500">
               <Phone className="w-4 h-4 text-brown-500 shrink-0" />
               <input {...register("phone")} className="w-full outline-none text-sm bg-transparent" />
             </div>
@@ -110,7 +110,7 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="text-sm font-medium text-forest-700 mb-1.5 block">Password</label>
-            <div className="flex items-center gap-2 rounded-xl border border-beige px-4 py-3 focus-within:border-pista-500">
+            <div className="flex items-center gap-2 rounded-xl border border-beige px-3.5 py-2.5 sm:px-4 sm:py-3 focus-within:border-pista-500">
               <Lock className="w-4 h-4 text-brown-500 shrink-0" />
               <input type="password" value="••••••••" readOnly className="w-full outline-none text-sm bg-transparent text-brown-500" />
               <button type="button" onClick={() => setPasswordOpen(true)} className="text-xs font-semibold text-pista-700 shrink-0 hover:underline">Change</button>

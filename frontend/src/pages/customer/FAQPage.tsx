@@ -16,29 +16,29 @@ export default function FAQPage() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 md:px-8 py-8">
+    <div className="max-w-3xl mx-auto px-4 md:px-8 py-4 sm:py-8">
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "FAQs" }]} />
-      <div className="flex items-center gap-2 mb-2">
-        <HelpCircle className="w-6 h-6 text-pista-700" />
-        <h1 className="font-display text-2xl md:text-3xl text-forest-700">Frequently Asked Questions</h1>
+      <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+        <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-pista-700" />
+        <h1 className="font-display text-lg sm:text-2xl md:text-3xl text-forest-700">Frequently Asked Questions</h1>
       </div>
-      <p className="text-sm text-brown-500 mb-8">Can't find what you're looking for? Reach out on our Contact page.</p>
+      <p className="text-sm text-brown-500 mb-4 sm:mb-8">Can't find what you're looking for? Reach out on our Contact page.</p>
 
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {FAQS.map((item, i) => {
           const isOpen = open === i;
           return (
             <div key={item.q} className="rounded-2xl bg-white shadow-soft overflow-hidden">
               <button
                 onClick={() => setOpen(isOpen ? null : i)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left"
+                className="w-full flex items-center justify-between px-3.5 py-3 sm:px-5 sm:py-4 text-left active:scale-[0.99] transition-transform"
                 aria-expanded={isOpen}
               >
                 <span className="text-sm font-semibold text-forest-700">{item.q}</span>
                 <ChevronDown className={clsx("w-4 h-4 text-brown-500 shrink-0 transition-transform", isOpen && "rotate-180")} />
               </button>
               {isOpen && (
-                <div className="px-5 pb-4 text-sm text-brown-500 leading-relaxed animate-fade-up">{item.a}</div>
+                <div className="px-3.5 pb-3 sm:px-5 sm:pb-4 text-sm text-brown-500 leading-relaxed animate-fade-up">{item.a}</div>
               )}
             </div>
           );

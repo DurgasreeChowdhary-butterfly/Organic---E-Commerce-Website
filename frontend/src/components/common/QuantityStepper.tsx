@@ -15,20 +15,20 @@ export default function QuantityStepper({ quantity, onChange, min = 1, max = 99 
         type="button"
         disabled={quantity <= min}
         onClick={() => onChange(quantity - 1)}
-        className="w-8 h-8 flex items-center justify-center text-forest-700 hover:bg-pista-50 disabled:opacity-30"
+        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-forest-700 hover:bg-pista-50 active:bg-pista-100 disabled:opacity-30"
         aria-label="Decrease quantity"
       >
-        <Minus className="w-3.5 h-3.5" />
+        <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
       </button>
-      <span className="w-8 text-center text-sm font-semibold text-forest-700">{quantity}</span>
+      <span className="w-6 sm:w-8 text-center text-xs sm:text-sm font-semibold text-forest-700">{quantity}</span>
       <button
         type="button"
         disabled={quantity >= max}
         onClick={() => onChange(quantity + 1)}
-        className="w-8 h-8 flex items-center justify-center text-forest-700 hover:bg-pista-50 disabled:opacity-30"
+        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-forest-700 hover:bg-pista-50 active:bg-pista-100 disabled:opacity-30"
         aria-label="Increase quantity"
       >
-        <Plus className="w-3.5 h-3.5" />
+        <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
       </button>
     </div>
   );

@@ -41,8 +41,8 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        <div className="grid md:grid-cols-2 gap-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 sm:py-8">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-10">
           <Skeleton className="aspect-square rounded-3xl" />
           <div className="space-y-4">
             <Skeleton className="h-6 w-2/3" />
@@ -91,31 +91,31 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 sm:py-8">
       <Breadcrumbs items={[
         { label: "Home", to: "/" },
         { label: product.category.name, to: `/products?category=${product.categorySlug}` },
         { label: product.name },
       ]} />
 
-      <div className="grid md:grid-cols-2 gap-10 mb-14">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-10 mb-6 sm:mb-14">
         <div className="animate-fade-up"><ProductGallery tint={product.tint} name={product.name} images={product.images} /></div>
 
         <div className="animate-fade-up" style={{ animationDelay: "80ms" }}>
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2 mb-2 sm:mb-3">
             {product.isBestSeller && <Badge tone="gold">Best Seller</Badge>}
             {product.isNewArrival && <Badge tone="orange">New</Badge>}
             {product.is_featured && <Badge tone="outline">Featured</Badge>}
           </div>
-          <h1 className="font-display text-3xl text-forest-700 mb-2">{product.name}</h1>
-          <div className="flex items-center gap-3 mb-4">
+          <h1 className="font-display text-xl sm:text-3xl text-forest-700 mb-1.5 sm:mb-2">{product.name}</h1>
+          <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
             {product.reviewCount > 0 && <StarRating rating={product.rating} reviewCount={product.reviewCount} size="md" />}
             <span className="text-xs text-brown-500">SKU: {product.sku} · {product.weight}</span>
           </div>
           <PriceTag price={product.price} discountPrice={product.discount_price} size="lg" />
-          <p className="text-sm text-brown-500 mt-4 leading-relaxed max-w-md">{product.description}</p>
+          <p className="text-sm text-brown-500 mt-3 sm:mt-4 leading-relaxed max-w-md">{product.description}</p>
 
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-3">
             {outOfStock ? (
               <span className="text-sm font-semibold text-red-600">Out of stock</span>
             ) : product.stock_quantity < 10 ? (
@@ -125,40 +125,40 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-4 mt-6">
+          <div className="flex items-center gap-2.5 sm:gap-4 mt-4 sm:mt-6">
             <QuantityStepper quantity={quantity} onChange={setQuantity} max={product.stock_quantity || 1} />
             <Button
               size="lg" disabled={outOfStock || addingToCart} onClick={handleAddToCart}
               icon={addingToCart ? <Loader2 className="w-4 h-4 animate-spin" /> : added ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
-              className="flex-1"
+              className="flex-1 !py-2.5 !text-sm sm:!py-3.5 sm:!text-base"
             >
               {added ? "Added to Cart" : "Add to Cart"}
             </Button>
             <button
               onClick={handleToggleWishlist}
               disabled={wishlistBusy}
-              className="w-12 h-12 rounded-full border-2 border-beige flex items-center justify-center shrink-0 hover:border-soft-orange transition-colors"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-beige flex items-center justify-center shrink-0 hover:border-soft-orange active:scale-95 transition-colors"
               aria-label="Toggle wishlist"
             >
               {wishlistBusy ? (
-                <Loader2 className="w-5 h-5 animate-spin text-forest-700" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-forest-700" />
               ) : (
-                <Heart className={wishlisted ? "w-5 h-5 fill-soft-orange text-soft-orange" : "w-5 h-5 text-forest-700"} />
+                <Heart className={wishlisted ? "w-4 h-4 sm:w-5 sm:h-5 fill-soft-orange text-soft-orange" : "w-4 h-4 sm:w-5 sm:h-5 text-forest-700"} />
               )}
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mt-8 pt-6 border-t border-beige">
-            <div className="flex flex-col items-center text-center gap-1.5">
-              <Truck className="w-5 h-5 text-pista-700" />
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-5 sm:mt-8 pt-4 sm:pt-6 border-t border-beige">
+            <div className="flex flex-col items-center text-center gap-1 sm:gap-1.5">
+              <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-pista-700" />
               <span className="text-[11px] text-brown-500">Free shipping ₹499+</span>
             </div>
-            <div className="flex flex-col items-center text-center gap-1.5">
-              <ShieldCheck className="w-5 h-5 text-pista-700" />
+            <div className="flex flex-col items-center text-center gap-1 sm:gap-1.5">
+              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-pista-700" />
               <span className="text-[11px] text-brown-500">100% Organic Certified</span>
             </div>
-            <div className="flex flex-col items-center text-center gap-1.5">
-              <RefreshCw className="w-5 h-5 text-pista-700" />
+            <div className="flex flex-col items-center text-center gap-1 sm:gap-1.5">
+              <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-pista-700" />
               <span className="text-[11px] text-brown-500">7-day easy returns</span>
             </div>
           </div>
@@ -166,13 +166,13 @@ export default function ProductDetailPage() {
       </div>
 
       {/* ---------- Tabs: Description / Specs ---------- */}
-      <div className="mb-14">
-        <div className="flex gap-6 border-b border-beige mb-6">
+      <div className="mb-6 sm:mb-14">
+        <div className="flex gap-4 sm:gap-6 border-b border-beige mb-4 sm:mb-6">
           {(["description", "specs"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`pb-3 text-sm font-semibold capitalize border-b-2 transition-colors ${tab === t ? "border-forest-700 text-forest-700" : "border-transparent text-brown-500"}`}
+              className={`pb-2 sm:pb-3 text-sm font-semibold capitalize border-b-2 transition-colors ${tab === t ? "border-forest-700 text-forest-700" : "border-transparent text-brown-500"}`}
             >
               {t === "specs" ? "Specifications" : t}
             </button>
@@ -185,7 +185,7 @@ export default function ProductDetailPage() {
 
         {tab === "specs" && (
           product.specifications.length > 0 ? (
-            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3 max-w-2xl animate-fade-up">
+            <div className="grid sm:grid-cols-2 gap-x-4 sm:gap-x-8 gap-y-2 sm:gap-y-3 max-w-2xl animate-fade-up">
               {product.specifications.map((s) => (
                 <div key={s.label} className="flex justify-between text-sm border-b border-beige py-2">
                   <span className="text-brown-500">{s.label}</span>
@@ -202,7 +202,7 @@ export default function ProductDetailPage() {
       {/* ---------- Related Products ---------- */}
       {related.length > 0 && (
         <div>
-          <h2 className="font-display text-2xl text-forest-700 mb-6">You may also like</h2>
+          <h2 className="font-display text-lg sm:text-2xl text-forest-700 mb-3 sm:mb-6">You may also like</h2>
           <ProductGrid products={related} />
         </div>
       )}

@@ -17,12 +17,12 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="min-w-0 md:col-span-2 rounded-3xl bg-white shadow-soft p-6 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 sm:py-8">
+        <div className="grid md:grid-cols-3 gap-4 sm:gap-8">
+          <div className="min-w-0 md:col-span-2 rounded-3xl bg-white shadow-soft p-3 sm:p-6 space-y-2.5 sm:space-y-4">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="flex items-center gap-4">
-                <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
+              <div key={i} className="flex items-center gap-2.5 sm:gap-4">
+                <Skeleton className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl shrink-0" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-2/3" />
                   <Skeleton className="h-3 w-1/3" />
@@ -30,7 +30,7 @@ export default function CartPage() {
               </div>
             ))}
           </div>
-          <Skeleton className="h-72 rounded-3xl" />
+          <Skeleton className="h-56 sm:h-72 rounded-3xl" />
         </div>
       </div>
     );
@@ -45,9 +45,9 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 sm:py-8">
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Cart" }]} />
-      <h1 className="font-display text-2xl md:text-3xl text-forest-700 mb-6">Shopping Cart ({items.length})</h1>
+      <h1 className="font-display text-lg sm:text-2xl md:text-3xl text-forest-700 mb-3 sm:mb-6">Shopping Cart ({items.length})</h1>
 
       {error && (
         <div className="mb-4 flex items-center gap-2 rounded-2xl bg-red-50 text-red-700 text-sm px-4 py-3">
@@ -57,9 +57,9 @@ export default function CartPage() {
         </div>
       )}
 
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid md:grid-cols-3 gap-4 sm:gap-8">
         <div className="min-w-0 md:col-span-2">
-          <div className="rounded-3xl bg-white shadow-soft p-6">
+          <div className="rounded-3xl bg-white shadow-soft p-3 sm:p-6">
             {items.map((item) => (
               <CartItemRow
                 key={item.id}
@@ -73,7 +73,7 @@ export default function CartPage() {
             ))}
           </div>
 
-          <Link to="/products" className="inline-block mt-4 text-sm font-semibold text-forest-700 hover:text-pista-700">← Continue Shopping</Link>
+          <Link to="/products" className="inline-block mt-3 sm:mt-4 text-xs sm:text-sm font-semibold text-forest-700 hover:text-pista-700">← Continue Shopping</Link>
         </div>
 
         <div>
