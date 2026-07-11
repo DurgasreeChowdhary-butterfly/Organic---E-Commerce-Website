@@ -125,9 +125,56 @@ export interface Order {
   created_at: string;
 }
 
+export type DiscountType = "percentage" | "flat";
+
 export interface Coupon {
   id: string;
   code: string;
-  discount_type: "percentage" | "flat";
+  discount_type: DiscountType;
   discount_value: number;
+  min_order_value: number;
+  max_discount?: number | null;
+  max_uses?: number | null;
+  per_user_limit?: number | null;
+  is_active: boolean;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  used_count: number;
+  created_at: string;
+}
+
+export interface CouponListResponse {
+  items: Coupon[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface CouponValidateResponse {
+  code: string;
+  discount_type: DiscountType;
+  discount_value: number;
+  discount_amount: number;
+  message: string;
+}
+
+export interface CreateRazorpayOrderResponse {
+  payment_id: string;
+  razorpay_order_id: string;
+  razorpay_key_id: string;
+  amount: number;
+  currency: string;
+  subtotal: number;
+  discount: number;
+  gst: number;
+  shipping: number;
+  total: number;
+}
+
+export interface VerifyPaymentResponse {
+  status: string;
+  payment_id: string;
+  razorpay_payment_id: string;
+  amount: number;
 }

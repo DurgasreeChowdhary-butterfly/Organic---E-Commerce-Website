@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Plus, Check, CreditCard, Smartphone, Wallet, Landmark, ShoppingBag, AlertCircle } from "lucide-react";
+import axios from "axios";
+import { MapPin, Plus, Check, CreditCard, Smartphone, Wallet, Landmark, ShoppingBag, AlertCircle, Tag, Loader2, X } from "lucide-react";
 import clsx from "clsx";
 import PriceSummary from "@/components/cart/PriceSummary";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
@@ -9,7 +10,9 @@ import AddressFormModal, { type AddressFormValues } from "@/components/checkout/
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createAddressThunk } from "@/features/addresses/addressesSlice";
 import { createOrder } from "@/features/orders/ordersSlice";
-import { clearCartThunk, fetchCartThunk } from "@/features/cart/cartSlice";
+import { fetchCartThunk } from "@/features/cart/cartSlice";
+import { applyCouponThunk, removeCoupon, clearCouponError } from "@/features/coupon/couponSlice";
+import { createRazorpayOrder, openRazorpayCheckout, verifyRazorpayPayment, reportPaymentFailure } from "@/services/paymentService";
 import { buildTimeline, type DummyOrder } from "@/data/orders";
 import type { Address } from "@/types";
 
@@ -26,11 +29,24 @@ const ADDRESS_TYPE_LABEL: Record<Address["address_type"], string> = {
   other: "Other",
 };
 
+const FREE_SHIPPING_THRESHOLD = 499;
+const SHIPPING_FEE = 59;
+
+function apiErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const detail = (err.response?.data as { detail?: unknown } | undefined)?.detail;
+    if (typeof detail === "string") return detail;
+  }
+  return fallback;
+}
+
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { items: cartItems, subtotal, discount, gst } = useAppSelector((s) => s.cart);
+  const { items: cartItems, subtotal, discount: productDiscount, gst } = useAppSelector((s) => s.cart);
   const addresses = useAppSelector((s) => s.addresses.items);
+  const user = useAppSelector((s) => s.auth.user);
+  const coupon = useAppSelector((s) => s.coupon);
 
   const [selectedAddress, setSelectedAddress] = useState(addresses.find((a) => a.is_default)?.id ?? addresses[0]?.id);
   const [payment, setPayment] = useState("upi");
@@ -38,6 +54,7 @@ export default function CheckoutPage() {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [couponInput, setCouponInput] = useState("");
 
   useEffect(() => {
     // Re-fetch right before checkout so stock/availability reflected in the
@@ -52,7 +69,10 @@ export default function CheckoutPage() {
     }
   }, [addresses, selectedAddress]);
 
-  const shipping = subtotal > 499 ? 0 : 59;
+  const orderValue = subtotal - productDiscount;
+  const couponDiscount = coupon.discountAmount;
+  const discount = productDiscount + couponDiscount;
+  const shipping = orderValue - couponDiscount > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
   const stockIssues = cartItems.filter((item) => !item.product.is_active || item.quantity > item.product.stock_quantity);
 
   if (cartItems.length === 0) {
@@ -75,7 +95,17 @@ export default function CheckoutPage() {
     }
   }
 
-  function placeOrder() {
+  async function handleApplyCoupon() {
+    if (!couponInput.trim()) return;
+    await dispatch(applyCouponThunk(couponInput.trim()));
+  }
+
+  function handleRemoveCoupon() {
+    dispatch(removeCoupon());
+    setCouponInput("");
+  }
+
+  async function placeOrder() {
     if (cartItems.length === 0) {
       setCheckoutError("Your cart is empty.");
       return;
@@ -90,29 +120,74 @@ export default function CheckoutPage() {
       return;
     }
     setCheckoutError(null);
-
     setPlacing(true);
-    setTimeout(() => {
+
+    let orderResponse;
+    try {
+      orderResponse = await createRazorpayOrder({ address_id: address.id, coupon_code: coupon.code ?? undefined });
+    } catch (err) {
+      setPlacing(false);
+      setCheckoutError(apiErrorMessage(err, "Could not start payment. Please try again."));
+      return;
+    }
+
+    let paymentResponse;
+    try {
+      paymentResponse = await openRazorpayCheckout({
+        key: orderResponse.razorpay_key_id,
+        amount: orderResponse.amount,
+        currency: orderResponse.currency,
+        order_id: orderResponse.razorpay_order_id,
+        name: "Prakruti Organics",
+        description: `Order for ${cartItems.length} item${cartItems.length > 1 ? "s" : ""}`,
+        prefill: { name: user?.full_name, email: user?.email, contact: user?.phone },
+        theme: { color: "#1F3D2B" },
+      });
+    } catch (err) {
+      setPlacing(false);
+      if ((err as { cancelled?: boolean })?.cancelled) {
+        await reportPaymentFailure(orderResponse.payment_id, "Cancelled by user").catch(() => undefined);
+        setCheckoutError("Payment was cancelled. You can try again whenever you're ready.");
+      } else {
+        setCheckoutError("Could not open the payment gateway. Please try again.");
+      }
+      return;
+    }
+
+    try {
+      const verifyResult = await verifyRazorpayPayment({
+        payment_id: orderResponse.payment_id,
+        razorpay_order_id: paymentResponse.razorpay_order_id,
+        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+        razorpay_signature: paymentResponse.razorpay_signature,
+      });
+
       const id = `o_${Date.now()}`;
       const order: DummyOrder = {
         id,
         order_number: `PRK-${100000 + Math.floor(Math.random() * 899999)}`,
         status: "confirmed",
-        total_amount: subtotal - discount + gst + shipping,
+        total_amount: verifyResult.amount,
         created_at: new Date().toISOString(),
         items: cartItems.map((i) => ({ product: i.product, quantity: i.quantity })),
         address,
-        subtotal,
-        gst,
-        shipping,
-        discount,
+        subtotal: orderResponse.subtotal,
+        gst: orderResponse.gst,
+        shipping: orderResponse.shipping,
+        discount: orderResponse.discount,
         timeline: buildTimeline("confirmed"),
       };
       dispatch(createOrder(order));
-      dispatch(clearCartThunk());
+      dispatch(removeCoupon());
+      dispatch(fetchCartThunk()); // cart was already cleared server-side on verify success
       setPlacing(false);
       navigate(`/orders/${id}`);
-    }, 1200);
+    } catch (err) {
+      setPlacing(false);
+      setCheckoutError(
+        apiErrorMessage(err, "Payment verification failed. If any amount was deducted, it will be refunded within 5-7 business days.")
+      );
+    }
   }
 
   return (
@@ -193,6 +268,40 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {/* Coupon */}
+          <div className="rounded-3xl bg-white shadow-soft p-6">
+            <label className="text-sm font-semibold text-forest-700 mb-2 flex items-center gap-1.5"><Tag className="w-4 h-4" /> Have a coupon?</label>
+            {coupon.code ? (
+              <div className="flex items-center justify-between rounded-2xl bg-pista-50 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-pista-700 flex items-center gap-1.5"><Check className="w-3.5 h-3.5" /> {coupon.code} applied</p>
+                  <p className="text-xs text-brown-500 mt-0.5">{coupon.message}</p>
+                </div>
+                <button onClick={handleRemoveCoupon} className="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1 shrink-0">
+                  <X className="w-3.5 h-3.5" /> Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={couponInput}
+                  onChange={(e) => { setCouponInput(e.target.value); if (coupon.error) dispatch(clearCouponError()); }}
+                  onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                  placeholder="Enter coupon code"
+                  className="flex-1 rounded-full border border-beige px-4 py-2.5 text-sm outline-none focus:border-pista-500 uppercase placeholder:normal-case"
+                />
+                <button
+                  onClick={handleApplyCoupon}
+                  disabled={coupon.status === "loading" || !couponInput.trim()}
+                  className="rounded-full px-5 py-2.5 text-sm font-semibold bg-forest-700 text-white shrink-0 hover:bg-forest-500 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {coupon.status === "loading" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                </button>
+              </div>
+            )}
+            {coupon.error && <p className="text-xs text-red-600 mt-2">{coupon.error}</p>}
+          </div>
+
           {/* Payment */}
           <div className="rounded-3xl bg-white shadow-soft p-6">
             <h2 className="font-semibold text-forest-700 mb-4">Payment Method</h2>
@@ -215,7 +324,7 @@ export default function CheckoutPage() {
                 );
               })}
             </div>
-            <p className="text-[11px] text-brown-500 mt-3">Payments are processed securely via Razorpay. (Demo — no real charge is made.)</p>
+            <p className="text-[11px] text-brown-500 mt-3">Payments are processed securely via Razorpay.</p>
           </div>
         </div>
 

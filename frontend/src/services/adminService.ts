@@ -1,7 +1,7 @@
 import { apiClient } from "./apiClient";
 import { toDummyProduct, type DummyProductListResponse } from "./productService";
 import type { DummyProduct } from "@/data/products";
-import type { Category, Product, ProductListResponse } from "@/types";
+import type { Category, Coupon, CouponListResponse, DiscountType, Product, ProductListResponse } from "@/types";
 
 // TODO: implement once the Order/Dashboard modules are in scope.
 export async function getDashboardStats() {
@@ -94,4 +94,55 @@ export async function adminUpdateCategory(id: string, payload: Partial<AdminCate
 
 export async function adminDeleteCategory(id: string): Promise<void> {
   await apiClient.delete(`/admin/categories/${id}`);
+}
+
+// ---------- Admin: Coupons ----------
+
+export interface AdminCouponInput {
+  code: string;
+  discount_type: DiscountType;
+  discount_value: number;
+  min_order_value?: number;
+  max_discount?: number | null;
+  max_uses?: number | null;
+  per_user_limit?: number | null;
+  is_active?: boolean;
+  valid_from?: string | null;
+  valid_until?: string | null;
+}
+
+export interface AdminCouponListParams {
+  search?: string;
+  is_active?: boolean;
+  page?: number;
+  page_size?: number;
+}
+
+export async function adminListCoupons(params: AdminCouponListParams = {}): Promise<CouponListResponse> {
+  const { data } = await apiClient.get<CouponListResponse>("/admin/coupons", { params });
+  return data;
+}
+
+export async function adminCreateCoupon(payload: AdminCouponInput): Promise<Coupon> {
+  const { data } = await apiClient.post<Coupon>("/admin/coupons", payload);
+  return data;
+}
+
+export async function adminUpdateCoupon(id: string, payload: Partial<AdminCouponInput>): Promise<Coupon> {
+  const { data } = await apiClient.put<Coupon>(`/admin/coupons/${id}`, payload);
+  return data;
+}
+
+export async function adminDeleteCoupon(id: string): Promise<void> {
+  await apiClient.delete(`/admin/coupons/${id}`);
+}
+
+export async function adminActivateCoupon(id: string): Promise<Coupon> {
+  const { data } = await apiClient.post<Coupon>(`/admin/coupons/${id}/activate`);
+  return data;
+}
+
+export async function adminDeactivateCoupon(id: string): Promise<Coupon> {
+  const { data } = await apiClient.post<Coupon>(`/admin/coupons/${id}/deactivate`);
+  return data;
 }

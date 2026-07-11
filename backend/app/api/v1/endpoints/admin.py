@@ -11,8 +11,10 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.api.deps import get_current_active_admin
 from app.crud import category as category_crud
+from app.crud import coupon as coupon_crud
 from app.crud import product as product_crud
 from app.models.product import ProductImage
+from app.schemas.coupon import CouponCreate, CouponListResponse, CouponRead, CouponUpdate
 from app.schemas.product import (
     CategoryCreate,
     CategoryRead,
@@ -246,19 +248,64 @@ def admin_inventory_reports(db: Session = Depends(get_db)):
 
 
 # --- Coupon management ---
-@router.post("/coupons")
-def admin_create_coupon(db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+@router.get("/coupons", response_model=CouponListResponse)
+def admin_list_coupons(
+    search: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """List all coupons with search + pagination."""
+    filters = coupon_crud.CouponFilters(search=search, is_active=is_active, page=page, page_size=page_size)
+    items, total = coupon_crud.list_coupons(db, filters)
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    return CouponListResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
 
 
-@router.put("/coupons/{coupon_id}")
-def admin_update_coupon(coupon_id: str, db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+@router.post("/coupons", response_model=CouponRead, status_code=status.HTTP_201_CREATED)
+def admin_create_coupon(payload: CouponCreate, db: Session = Depends(get_db)):
+    """Create a new coupon."""
+    if coupon_crud.get_by_code(db, payload.code) is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A coupon with this code already exists")
+    return coupon_crud.create(db, payload)
 
 
-@router.delete("/coupons/{coupon_id}")
-def admin_delete_coupon(coupon_id: str, db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+@router.put("/coupons/{coupon_id}", response_model=CouponRead)
+def admin_update_coupon(coupon_id: uuid.UUID, payload: CouponUpdate, db: Session = Depends(get_db)):
+    """Edit an existing coupon."""
+    if payload.code is not None:
+        existing = coupon_crud.get_by_code(db, payload.code)
+        if existing is not None and existing.id != coupon_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A coupon with this code already exists")
+    try:
+        return coupon_crud.update(db, coupon_id, payload)
+    except coupon_crud.CouponNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coupon not found")
+
+
+@router.delete("/coupons/{coupon_id}", status_code=status.HTTP_204_NO_CONTENT)
+def admin_delete_coupon(coupon_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Delete a coupon."""
+    try:
+        coupon_crud.delete(db, coupon_id)
+    except coupon_crud.CouponNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coupon not found")
+
+
+@router.post("/coupons/{coupon_id}/activate", response_model=CouponRead)
+def admin_activate_coupon(coupon_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Activate a coupon."""
+    try:
+        return coupon_crud.set_active(db, coupon_id, True)
+    except coupon_crud.CouponNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coupon not found")
+
+
+@router.post("/coupons/{coupon_id}/deactivate", response_model=CouponRead)
+def admin_deactivate_coupon(coupon_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Deactivate a coupon."""
+    try:
+        return coupon_crud.set_active(db, coupon_id, False)
+    except coupon_crud.CouponNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coupon not found")

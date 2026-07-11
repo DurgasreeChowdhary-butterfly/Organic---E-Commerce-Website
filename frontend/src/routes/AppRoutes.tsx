@@ -26,6 +26,7 @@ import ReturnsPage from "@/pages/customer/ReturnsPage";
 import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
 import AdminProductsPage from "@/pages/admin/AdminProductsPage";
 import AdminCategoriesPage from "@/pages/admin/AdminCategoriesPage";
+import AdminCouponsPage from "@/pages/admin/AdminCouponsPage";
 import AdminOrdersPage from "@/pages/admin/AdminOrdersPage";
 import AdminCustomersPage from "@/pages/admin/AdminCustomersPage";
 import AdminInventoryPage from "@/pages/admin/AdminInventoryPage";
@@ -68,6 +69,7 @@ export default function AppRoutes() {
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/categories" element={<AdminCategoriesPage />} />
+          <Route path="/admin/coupons" element={<AdminCouponsPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
           <Route path="/admin/customers" element={<AdminCustomersPage />} />
           <Route path="/admin/inventory" element={<AdminInventoryPage />} />
