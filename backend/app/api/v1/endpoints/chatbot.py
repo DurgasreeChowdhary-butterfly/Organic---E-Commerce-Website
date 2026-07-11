@@ -1,28 +1,21 @@
-"""
-AI chatbot endpoints: FAQ answers, product recommendations, WhatsApp handoff.
-"""
-from fastapi import APIRouter
-from pydantic import BaseModel
+"""AI Assistant endpoint: FAQ answers, real product discovery, WhatsApp handoff."""
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_db
+from app.core.rate_limit import enforce_rate_limit
+from app.schemas.chat import ChatRequest, ChatResponse
+from app.services import chatbot_service
 
 router = APIRouter()
 
 
-class ChatMessage(BaseModel):
-    session_id: str
-    message: str
-
-
-@router.post("/message")
-def send_message(payload: ChatMessage):
+@router.post("/message", response_model=ChatResponse)
+def send_message(payload: ChatRequest, request: Request, db: Session = Depends(get_db)) -> ChatResponse:
     """
-    Send a user message to the AI chatbot and get a reply.
-    TODO: implement using OpenAI/Gemini API with a system prompt covering
-    FAQs, product catalog context, and a WhatsApp handoff trigger.
+    Send a user message to the AI assistant and get a grounded reply.
+    Open to guests and authenticated users alike - no auth required.
     """
-    raise NotImplementedError
-
-
-@router.get("/history/{session_id}")
-def get_chat_history(session_id: str):
-    """Retrieve prior messages for a chat session. TODO: implement."""
-    raise NotImplementedError
+    client_key = request.client.host if request.client else payload.session_id
+    enforce_rate_limit(client_key)
+    return chatbot_service.get_chatbot_reply(db, payload.message)

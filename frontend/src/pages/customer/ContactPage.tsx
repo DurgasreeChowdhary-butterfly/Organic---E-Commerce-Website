@@ -2,9 +2,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
-import { Mail, Phone, MapPin, Send, Check } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Check, MessageCircle } from "lucide-react";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import Button from "@/components/common/Button";
+
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999";
+const WHATSAPP_HREF = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi, I'd like help from the Prakruti Organics support team.")}`;
 
 const contactSchema = z.object({
   name: z.string().min(2, "Enter your name"),
@@ -52,6 +55,18 @@ export default function ContactPage() {
             <MapPin className="w-4.5 h-4.5 text-pista-700 shrink-0" />
             <span className="text-sm text-forest-700">Bengaluru, Karnataka, India</span>
           </div>
+          <a
+            href={WHATSAPP_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-2xl bg-[#25D366]/10 shadow-soft p-5 flex items-center gap-3 hover:bg-[#25D366]/15 transition-colors"
+          >
+            <MessageCircle className="w-4.5 h-4.5 text-[#25D366] shrink-0 fill-[#25D366]" />
+            <div>
+              <span className="text-sm font-semibold text-forest-700 block">Chat on WhatsApp</span>
+              <span className="text-xs text-brown-500">Fastest way to reach our support team</span>
+            </div>
+          </a>
         </div>
 
         <div className="rounded-3xl bg-white shadow-soft p-6">

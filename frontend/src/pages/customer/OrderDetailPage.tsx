@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Check, Download, Leaf, MapPin, SearchX, AlertCircle, RotateCcw, XCircle, Loader2 } from "lucide-react";
+import { Check, Download, Leaf, MapPin, SearchX, AlertCircle, RotateCcw, XCircle, Loader2, MessageCircle } from "lucide-react";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import EmptyState from "@/components/common/EmptyState";
 import Skeleton from "@/components/common/Skeleton";
@@ -12,6 +12,12 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOrderThunk, cancelOrderThunk, reorderThunk, clearOrderDetailError, clearReorderSkipped } from "@/features/orders/ordersSlice";
 
 const CANCELLABLE_STATUSES = new Set(["pending", "confirmed", "packed"]);
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999";
+
+function orderSupportWhatsAppLink(orderNumber: string) {
+  const text = `Hi, I need help with my order ${orderNumber}.`;
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+}
 
 export default function OrderDetailPage() {
   const { orderId } = useParams();
@@ -208,6 +214,19 @@ export default function OrderDetailPage() {
               <p className="text-[10px] text-brown-500 mt-3">Payment Ref: {order.razorpay_payment_id}</p>
             )}
           </div>
+
+          <a
+            href={orderSupportWhatsAppLink(order.order_number)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-3xl bg-[#25D366]/10 shadow-soft p-5 hover:bg-[#25D366]/15 transition-colors"
+          >
+            <MessageCircle className="w-5 h-5 text-[#25D366] shrink-0 fill-[#25D366]" />
+            <div>
+              <p className="text-sm font-semibold text-forest-700">Need help with this order?</p>
+              <p className="text-xs text-brown-500">Chat with support on WhatsApp</p>
+            </div>
+          </a>
         </div>
       </div>
 

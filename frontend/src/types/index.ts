@@ -348,3 +348,19 @@ export interface DashboardAnalytics {
   low_stock_alerts: LowStockAlertItem[];
   sales_trend: SalesTrendPoint[];
 }
+
+export interface ChatProductSuggestion {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  discount_price?: number | null;
+  image_url?: string | null;
+  in_stock: boolean;
+}
+
+export interface ChatResponse {
+  reply: string;
+  suggested_products: ChatProductSuggestion[];
+  escalate_to_whatsapp: boolean;
+}

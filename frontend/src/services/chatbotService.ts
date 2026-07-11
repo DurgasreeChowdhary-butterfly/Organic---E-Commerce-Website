@@ -1,8 +1,7 @@
-// TODO: uncomment once wired to the real backend
-// import { apiClient } from "./apiClient";
+import { apiClient } from "./apiClient";
+import type { ChatResponse } from "@/types";
 
-// TODO: implement calls to /chatbot/message, /chatbot/history/{sessionId}
-
-export async function sendChatMessage(_sessionId: string, _message: string) {
-  throw new Error("Not implemented");
+export async function sendChatMessage(sessionId: string, message: string): Promise<ChatResponse> {
+  const { data } = await apiClient.post<ChatResponse>("/chatbot/message", { session_id: sessionId, message });
+  return data;
 }

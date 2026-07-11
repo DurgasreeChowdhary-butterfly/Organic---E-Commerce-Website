@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # AI Chatbot
     OPENAI_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
 
     # OTP / SMS
     OTP_PROVIDER_API_KEY: str = ""

@@ -74,7 +74,7 @@ export default function Footer() {
               <div><Link to="/orders" className="hover:text-white">Track Order</Link></div>
               <div><Link to="/returns" className="hover:text-white">Returns</Link></div>
               <div>
-                <a href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999"}`} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                <a href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999"}?text=${encodeURIComponent("Hi, I'd like help from the Prakruti Organics support team.")}`} target="_blank" rel="noopener noreferrer" className="hover:text-white">
                   WhatsApp Us
                 </a>
               </div>
