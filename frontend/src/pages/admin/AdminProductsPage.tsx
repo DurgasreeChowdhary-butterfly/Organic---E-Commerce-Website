@@ -60,10 +60,13 @@ export default function AdminProductsPage() {
       : await dispatch(adminCreateProductThunk(payload));
 
     if (adminCreateProductThunk.fulfilled.match(result) || adminUpdateProductThunk.fulfilled.match(result)) {
-      dispatch(adminFetchProductsThunk({ search: debouncedSearch || undefined, page, page_size: 10 }));
       return result.payload;
     }
     return null;
+  }
+
+  function handleSaved() {
+    dispatch(adminFetchProductsThunk({ search: debouncedSearch || undefined, page, page_size: 10 }));
   }
 
   function handleModalClose() {
@@ -140,6 +143,7 @@ export default function AdminProductsPage() {
         open={modalOpen}
         onClose={handleModalClose}
         onSubmit={handleSubmit}
+        onSaved={handleSaved}
         initial={editing}
       />
 

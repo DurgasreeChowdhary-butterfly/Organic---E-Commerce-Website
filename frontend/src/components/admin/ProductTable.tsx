@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pencil, Trash2, Leaf, Star } from "lucide-react";
 import { formatCurrency } from "@/utils/formatCurrency";
 import type { DummyProduct } from "@/data/products";
@@ -13,6 +14,7 @@ interface ProductTableProps {
 
 /** Admin product management table with edit/delete actions. */
 export default function ProductTable({ products, onEdit, onDelete, loading }: ProductTableProps) {
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   return (
     <div className="rounded-3xl bg-white shadow-soft overflow-hidden">
       <div className="overflow-x-auto">
@@ -38,7 +40,16 @@ export default function ProductTable({ products, onEdit, onDelete, loading }: Pr
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden" style={{ background: `${p.tint}22` }}>
-                          {imageUrl ? <img src={imageUrl} alt="" className="w-full h-full object-cover" /> : <Leaf className="w-4.5 h-4.5" style={{ color: p.tint }} />}
+                          {imageUrl && !failedImages.has(p.id) ? (
+                            <img
+                              src={imageUrl}
+                              alt=""
+                              onError={() => setFailedImages((prev) => new Set(prev).add(p.id))}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Leaf className="w-4.5 h-4.5" style={{ color: p.tint }} />
+                          )}
                         </div>
                         <span className="font-medium text-forest-700 flex items-center gap-1.5">
                           {p.name}

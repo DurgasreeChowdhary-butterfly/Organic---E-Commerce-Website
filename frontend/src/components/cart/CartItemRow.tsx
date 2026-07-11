@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Leaf, Trash2, Loader2 } from "lucide-react";
 import type { DummyProduct } from "@/data/products";
@@ -18,6 +19,7 @@ interface CartItemRowProps {
 export default function CartItemRow({ id, product, quantity, onQuantityChange, onRemove, busy }: CartItemRowProps) {
   const primaryImage = product.images?.find((img) => img.is_primary) ?? product.images?.[0];
   const imageUrl = resolveImageUrl(primaryImage?.image_url);
+  const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <div className="flex items-center gap-4 py-5 border-b border-beige animate-fade-up last:border-b-0">
@@ -26,8 +28,8 @@ export default function CartItemRow({ id, product, quantity, onQuantityChange, o
         className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden"
         style={{ background: `linear-gradient(135deg, ${product.tint}14 0%, ${product.tint}2A 100%)` }}
       >
-        {imageUrl ? (
-          <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
+        {imageUrl && !imageFailed ? (
+          <img src={imageUrl} alt={product.name} onError={() => setImageFailed(true)} className="w-full h-full object-cover" />
         ) : (
           <Leaf className="w-7 h-7 opacity-40" style={{ color: product.tint }} />
         )}

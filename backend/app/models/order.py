@@ -25,10 +25,10 @@ class Order(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     order_number: Mapped[str] = mapped_column(String(50), unique=True, index=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
     address_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("addresses.id"))
     payment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("payments.id"), nullable=True)
-    status: Mapped[OrderStatus] = mapped_column(Enum(OrderStatus), default=OrderStatus.PENDING)
+    status: Mapped[OrderStatus] = mapped_column(Enum(OrderStatus), default=OrderStatus.PENDING, index=True)
     subtotal: Mapped[float] = mapped_column(Numeric(10, 2))
     gst_amount: Mapped[float] = mapped_column(Numeric(10, 2))
     discount_amount: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
@@ -58,7 +58,7 @@ class OrderItem(Base):
     __tablename__ = "order_items"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id"))
+    order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id"), index=True)
     product_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
     # Snapshot of the product at purchase time — survives price changes,
     # renames, or deletion of the product itself.

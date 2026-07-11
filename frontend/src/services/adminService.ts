@@ -6,6 +6,8 @@ import type {
   Category,
   Coupon,
   CouponListResponse,
+  CustomerDetail,
+  CustomerListResponse,
   DashboardAnalytics,
   DiscountType,
   InventoryListResponse,
@@ -230,5 +232,23 @@ export async function adminGetInventoryHistory(
   params: { page?: number; page_size?: number } = {}
 ): Promise<InventoryTransactionListResponse> {
   const { data } = await apiClient.get<InventoryTransactionListResponse>(`/admin/inventory/${productId}/history`, { params });
+  return data;
+}
+
+// ---------- Admin: Customers ----------
+
+export interface AdminCustomerListParams {
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export async function adminListCustomers(params: AdminCustomerListParams = {}): Promise<CustomerListResponse> {
+  const { data } = await apiClient.get<CustomerListResponse>("/admin/customers", { params });
+  return data;
+}
+
+export async function adminGetCustomer(id: string): Promise<CustomerDetail> {
+  const { data } = await apiClient.get<CustomerDetail>(`/admin/customers/${id}`);
   return data;
 }

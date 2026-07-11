@@ -35,14 +35,19 @@ interface ProductFormModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (payload: AdminProductInput) => Promise<DummyProduct | null>;
+  /** Called once the product AND any pending image upload have both finished
+   * saving — the right moment to refetch the product list, since a refetch
+   * triggered right after `onSubmit` alone would miss images uploaded afterward. */
+  onSaved?: () => void;
   initial?: DummyProduct | null;
 }
 
 /** Shared Add/Edit product form (+ image upload) used by AdminProductsPage. */
-export default function ProductFormModal({ open, onClose, onSubmit, initial }: ProductFormModalProps) {
+export default function ProductFormModal({ open, onClose, onSubmit, onSaved, initial }: ProductFormModalProps) {
   const categories = useAppSelector((s) => s.products.categories);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<UploadedImage[]>(initial?.images ?? []);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -132,11 +137,13 @@ export default function ProductFormModal({ open, onClose, onSubmit, initial }: P
       } catch {
         setFormError("Product saved, but image upload failed. You can retry from Edit.");
         setUploading(false);
+        onSaved?.();
         return;
       }
       setUploading(false);
     }
 
+    onSaved?.();
     handleOpenChange(false);
   }
 
@@ -201,8 +208,17 @@ export default function ProductFormModal({ open, onClose, onSubmit, initial }: P
           {(existingImages.length > 0 || pendingFiles.length > 0) && (
             <div className="grid grid-cols-4 gap-2 mb-2">
               {existingImages.map((img) => (
-                <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-beige group">
-                  <img src={resolveImageUrl(img.image_url)} alt="" className="w-full h-full object-cover" />
+                <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-beige group bg-beige/40 flex items-center justify-center">
+                  {!failedImages.has(img.id) ? (
+                    <img
+                      src={resolveImageUrl(img.image_url)}
+                      alt=""
+                      onError={() => setFailedImages((prev) => new Set(prev).add(img.id))}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ImagePlus className="w-5 h-5 text-brown-500/50" />
+                  )}
                   {img.is_primary && <Star className="absolute top-1 left-1 w-3.5 h-3.5 fill-gold text-gold" />}
                   <button
                     type="button"

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Heart, ShoppingCart, Trash2, Leaf, Loader2, AlertCircle } from "lucide-react";
 import PriceTag from "@/components/common/PriceTag";
@@ -12,6 +13,7 @@ export default function WishlistPage() {
   const { items, status, error, mutatingProductId } = useAppSelector((s) => s.wishlist);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const loading = status === "idle" || status === "loading";
 
@@ -68,8 +70,13 @@ export default function WishlistPage() {
                 className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden"
                 style={{ background: `linear-gradient(135deg, ${item.product.tint}14 0%, ${item.product.tint}2A 100%)` }}
               >
-                {imageUrl ? (
-                  <img src={imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
+                {imageUrl && !failedImages.has(item.product.id) ? (
+                  <img
+                    src={imageUrl}
+                    alt={item.product.name}
+                    onError={() => setFailedImages((prev) => new Set(prev).add(item.product.id))}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <Leaf className="w-7 h-7 opacity-40" style={{ color: item.product.tint }} />
                 )}

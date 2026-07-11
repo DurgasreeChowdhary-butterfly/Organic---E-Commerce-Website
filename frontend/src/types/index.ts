@@ -349,6 +349,32 @@ export interface DashboardAnalytics {
   sales_trend: SalesTrendPoint[];
 }
 
+export interface CustomerListItem {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  is_active: boolean;
+  is_verified: boolean;
+  created_at: string;
+  order_count: number;
+  total_purchase_value: number;
+}
+
+export interface CustomerListResponse {
+  items: CustomerListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface CustomerDetail extends CustomerListItem {
+  addresses: Address[];
+  recent_orders: AdminOrderListItem[];
+  purchase_history: AdminOrderListItem[];
+}
+
 export interface ChatProductSuggestion {
   id: string;
   name: string;

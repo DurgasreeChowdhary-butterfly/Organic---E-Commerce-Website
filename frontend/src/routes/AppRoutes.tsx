@@ -1,4 +1,6 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import ProtectedRoute from "./ProtectedRoute";
@@ -23,13 +25,23 @@ import ContactPage from "@/pages/customer/ContactPage";
 import FAQPage from "@/pages/customer/FAQPage";
 import ReturnsPage from "@/pages/customer/ReturnsPage";
 
-import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
-import AdminProductsPage from "@/pages/admin/AdminProductsPage";
-import AdminCategoriesPage from "@/pages/admin/AdminCategoriesPage";
-import AdminCouponsPage from "@/pages/admin/AdminCouponsPage";
-import AdminOrdersPage from "@/pages/admin/AdminOrdersPage";
-import AdminCustomersPage from "@/pages/admin/AdminCustomersPage";
-import AdminInventoryPage from "@/pages/admin/AdminInventoryPage";
+// Admin pages are only ever loaded by admins — lazy-load them so customer
+// visitors (the overwhelming majority) don't download admin table/chart code.
+const AdminDashboardPage = lazy(() => import("@/pages/admin/AdminDashboardPage"));
+const AdminProductsPage = lazy(() => import("@/pages/admin/AdminProductsPage"));
+const AdminCategoriesPage = lazy(() => import("@/pages/admin/AdminCategoriesPage"));
+const AdminCouponsPage = lazy(() => import("@/pages/admin/AdminCouponsPage"));
+const AdminOrdersPage = lazy(() => import("@/pages/admin/AdminOrdersPage"));
+const AdminCustomersPage = lazy(() => import("@/pages/admin/AdminCustomersPage"));
+const AdminInventoryPage = lazy(() => import("@/pages/admin/AdminInventoryPage"));
+
+function AdminPageFallback() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <Loader2 className="w-6 h-6 animate-spin text-pista-700" />
+    </div>
+  );
+}
 
 /**
  * Central route table. Customer-facing routes are wrapped in MainLayout
@@ -66,13 +78,34 @@ export default function AppRoutes() {
 
       <Route element={<AdminRoute />}>
         <Route element={<AdminLayout />}>
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/products" element={<AdminProductsPage />} />
-          <Route path="/admin/categories" element={<AdminCategoriesPage />} />
-          <Route path="/admin/coupons" element={<AdminCouponsPage />} />
-          <Route path="/admin/orders" element={<AdminOrdersPage />} />
-          <Route path="/admin/customers" element={<AdminCustomersPage />} />
-          <Route path="/admin/inventory" element={<AdminInventoryPage />} />
+          <Route
+            path="/admin"
+            element={<Suspense fallback={<AdminPageFallback />}><AdminDashboardPage /></Suspense>}
+          />
+          <Route
+            path="/admin/products"
+            element={<Suspense fallback={<AdminPageFallback />}><AdminProductsPage /></Suspense>}
+          />
+          <Route
+            path="/admin/categories"
+            element={<Suspense fallback={<AdminPageFallback />}><AdminCategoriesPage /></Suspense>}
+          />
+          <Route
+            path="/admin/coupons"
+            element={<Suspense fallback={<AdminPageFallback />}><AdminCouponsPage /></Suspense>}
+          />
+          <Route
+            path="/admin/orders"
+            element={<Suspense fallback={<AdminPageFallback />}><AdminOrdersPage /></Suspense>}
+          />
+          <Route
+            path="/admin/customers"
+            element={<Suspense fallback={<AdminPageFallback />}><AdminCustomersPage /></Suspense>}
+          />
+          <Route
+            path="/admin/inventory"
+            element={<Suspense fallback={<AdminPageFallback />}><AdminInventoryPage /></Suspense>}
+          />
         </Route>
       </Route>
     </Routes>

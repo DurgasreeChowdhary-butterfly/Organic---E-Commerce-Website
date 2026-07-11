@@ -8,6 +8,7 @@ payment is verified successful; the cart is cleared and the coupon (if any)
 is redeemed at the same time. A failed/forged verification leaves the cart,
 coupon, and order history untouched.
 """
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -32,6 +33,8 @@ from app.schemas.payment import (
     VerifyPaymentRequest,
     VerifyPaymentResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -143,8 +146,19 @@ def verify_razorpay_payment(
     payment = payment_crud.mark_success(db, payment, payload.razorpay_payment_id, payload.razorpay_signature)
 
     if payment.coupon_id:
-        coupon = coupon_crud.get(db, payment.coupon_id)
-        coupon_crud.redeem(db, coupon, current_user.id, payment.id)
+        redeemed = coupon_crud.redeem_if_valid(
+            db, payment.coupon_id, current_user.id, payment.id, float(payment.subtotal)
+        )
+        if not redeemed:
+            # Payment is already captured — the order must still be created —
+            # but a concurrent checkout exhausted the coupon's usage limit (or
+            # it was deactivated/expired) between create-order and verify.
+            # Skip the redemption record rather than over-crediting usage.
+            logger.warning(
+                "Coupon %s no longer valid at payment verification for payment %s; "
+                "order will still be created without a redemption record.",
+                payment.coupon_id, payment.id,
+            )
 
     try:
         order = order_crud.create_from_payment(db, payment)

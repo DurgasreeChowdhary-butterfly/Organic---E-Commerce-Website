@@ -198,32 +198,38 @@ def cancel(db: Session, order: Order, reason: Optional[str] = None) -> Order:
 
 
 def refund(db: Session, order: Order, reason: Optional[str] = None) -> Order:
-    if not order.razorpay_payment_id:
+    # Lock the order row for the duration of this refund so two
+    # near-simultaneous refund requests for the same order can't both pass
+    # the REFUNDED status check before either commits (double-refund race).
+    locked_order = db.get(Order, order.id, with_for_update=True)
+    if locked_order is None:
+        raise OrderNotFound()
+    if not locked_order.razorpay_payment_id:
         raise OrderNotRefundable()
-    if order.status == OrderStatus.REFUNDED:
-        raise OrderStatusIsFinal(order.status)
+    if locked_order.status == OrderStatus.REFUNDED:
+        raise OrderStatusIsFinal(locked_order.status)
 
-    refund_result = payment_crud.create_refund(order.razorpay_payment_id, float(order.total_amount))
+    refund_result = payment_crud.create_refund(locked_order.razorpay_payment_id, float(locked_order.total_amount))
 
     # A cancelled order already had its stock restored (ORDER_CANCELLED
     # movement) — only restock here if that hasn't already happened,
     # otherwise the same items would be credited back twice.
-    already_restocked = order.status == OrderStatus.CANCELLED
+    already_restocked = locked_order.status == OrderStatus.CANCELLED
     if not already_restocked:
-        for item in order.items:
+        for item in locked_order.items:
             if item.product_id:
                 product = db.get(Product, item.product_id)
                 if product is not None:
                     inventory_crud.adjust_stock(
-                        db, product, MovementType.REFUND_RESTOCK, item.quantity, order_id=order.id, commit=False
+                        db, product, MovementType.REFUND_RESTOCK, item.quantity, order_id=locked_order.id, commit=False
                     )
 
-    order.status = OrderStatus.REFUNDED
-    order.refund_id = refund_result.get("id")
-    order.refunded_at = datetime.utcnow()
-    db.add(OrderStatusHistory(order_id=order.id, status=OrderStatus.REFUNDED, note=reason or "Refunded"))
+    locked_order.status = OrderStatus.REFUNDED
+    locked_order.refund_id = refund_result.get("id")
+    locked_order.refunded_at = datetime.utcnow()
+    db.add(OrderStatusHistory(order_id=locked_order.id, status=OrderStatus.REFUNDED, note=reason or "Refunded"))
     db.commit()
-    return get(db, order.id)
+    return get(db, locked_order.id)
 
 
 def reorder(db: Session, order: Order, user_id: uuid.UUID) -> tuple[Cart, list[str]]:

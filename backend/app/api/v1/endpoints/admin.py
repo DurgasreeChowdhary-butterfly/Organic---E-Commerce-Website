@@ -8,6 +8,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.v1.endpoints.orders import _serialize_order as _admin_serialize_order
@@ -15,6 +16,7 @@ from app.db.session import get_db
 from app.api.deps import get_current_active_admin
 from app.crud import category as category_crud
 from app.crud import coupon as coupon_crud
+from app.crud import customer as customer_crud
 from app.crud import dashboard as dashboard_crud
 from app.crud import inventory as inventory_crud
 from app.crud import order as order_crud
@@ -23,7 +25,9 @@ from app.crud import product as product_crud
 from app.models.order import OrderStatus
 from app.models.product import ProductImage
 from app.models.user import User
+from app.schemas.address import AddressRead
 from app.schemas.coupon import CouponCreate, CouponListResponse, CouponRead, CouponUpdate
+from app.schemas.customer import CustomerDetailRead, CustomerListItemRead, CustomerListResponse
 from app.schemas.dashboard import DashboardAnalyticsResponse, LowStockAlertRead, RecentOrderRead, TopSellingProductRead
 from app.schemas.inventory import (
     InventoryItemRead,
@@ -51,7 +55,7 @@ from app.schemas.product import (
     ProductRead,
     ProductUpdate,
 )
-from app.services.storage_service import FileTooLarge, UnsupportedFileType, upload_product_image
+from app.services.storage_service import FileTooLarge, InvalidImageContent, UnsupportedFileType, upload_product_image
 from app.services.invoice_service import generate_invoice_pdf
 
 router = APIRouter(dependencies=[Depends(get_current_active_admin)])
@@ -138,11 +142,19 @@ def admin_update_product(product_id: uuid.UUID, payload: ProductUpdate, db: Sess
 
 @router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 def admin_delete_product(product_id: uuid.UUID, db: Session = Depends(get_db)):
-    """Delete a product."""
+    """Delete a product. Blocked if it's still referenced by a customer's
+    cart, wishlist, or a review (foreign keys with no cascade there)."""
     product = product_crud.get(db, product_id)
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
-    product_crud.remove(db, product)
+    try:
+        product_crud.remove(db, product)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete a product that's still in a customer's cart, wishlist, or has reviews. Deactivate it instead.",
+        )
 
 
 @router.post("/products/{product_id}/images", response_model=List[ProductImageRead])
@@ -162,7 +174,7 @@ def admin_upload_product_images(
         content = file.file.read()
         try:
             url = upload_product_image(content, file.content_type or "")
-        except (UnsupportedFileType, FileTooLarge) as exc:
+        except (UnsupportedFileType, FileTooLarge, InvalidImageContent) as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
         image = ProductImage(
             product_id=product.id,
@@ -324,16 +336,81 @@ def admin_generate_invoice(order_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 # --- Customer management ---
-@router.get("/customers")
-def admin_list_customers(db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+def _serialize_customer_list_item(user: User, stats: dict) -> CustomerListItemRead:
+    s = stats.get(user.id, {"order_count": 0, "total_purchase_value": 0.0})
+    return CustomerListItemRead(
+        id=user.id,
+        full_name=user.full_name,
+        email=user.email,
+        phone=user.phone,
+        is_active=user.is_active,
+        is_verified=user.is_verified,
+        created_at=user.created_at,
+        order_count=s["order_count"],
+        total_purchase_value=s["total_purchase_value"],
+    )
 
 
-@router.get("/customers/{customer_id}")
-def admin_get_customer(customer_id: str, db: Session = Depends(get_db)):
-    """Customer details + purchase history. TODO: implement."""
-    raise NotImplementedError
+def _serialize_customer_order(order, user: User) -> AdminOrderListItemRead:
+    return AdminOrderListItemRead(
+        id=order.id,
+        order_number=order.order_number,
+        status=order.status,
+        total_amount=float(order.total_amount),
+        item_count=sum(i.quantity for i in order.items),
+        created_at=order.created_at,
+        customer_name=user.full_name,
+        customer_email=user.email,
+    )
+
+
+@router.get("/customers", response_model=CustomerListResponse)
+def admin_list_customers(
+    search: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """List registered customers with search (name/email/phone) and pagination."""
+    filters = customer_crud.CustomerFilters(search=search, page=page, page_size=page_size)
+    users, stats, total = customer_crud.list_customers(db, filters)
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    return CustomerListResponse(
+        items=[_serialize_customer_list_item(u, stats) for u in users],
+        total=total, page=page, page_size=page_size, total_pages=total_pages,
+    )
+
+
+@router.get("/customers/{customer_id}", response_model=CustomerDetailRead)
+def admin_get_customer(customer_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Customer details: profile, saved addresses, order count, total valid
+    purchase value, recent orders, and full purchase history."""
+    try:
+        user = customer_crud.get_customer(db, customer_id)
+    except customer_crud.CustomerNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+
+    addresses = customer_crud.get_addresses(db, customer_id)
+    stats = customer_crud._order_stats_for_users(db, [customer_id]).get(
+        customer_id, {"order_count": 0, "total_purchase_value": 0.0}
+    )
+    recent_orders = customer_crud.get_recent_orders(db, customer_id, limit=5)
+    purchase_history = customer_crud.get_purchase_history(db, customer_id)
+
+    return CustomerDetailRead(
+        id=user.id,
+        full_name=user.full_name,
+        email=user.email,
+        phone=user.phone,
+        is_active=user.is_active,
+        is_verified=user.is_verified,
+        created_at=user.created_at,
+        order_count=stats["order_count"],
+        total_purchase_value=stats["total_purchase_value"],
+        addresses=[AddressRead.model_validate(a, from_attributes=True) for a in addresses],
+        recent_orders=[_serialize_customer_order(o, user) for o in recent_orders],
+        purchase_history=[_serialize_customer_order(o, user) for o in purchase_history],
+    )
 
 
 # --- Inventory management ---

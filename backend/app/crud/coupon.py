@@ -50,8 +50,8 @@ class CouponPerUserLimitExceeded(CouponError):
         super().__init__("You have already used this coupon the maximum number of times")
 
 
-def get(db: Session, coupon_id: uuid.UUID) -> Coupon:
-    coupon = db.get(Coupon, coupon_id)
+def get(db: Session, coupon_id: uuid.UUID, *, for_update: bool = False) -> Coupon:
+    coupon = db.get(Coupon, coupon_id, with_for_update=for_update)
     if coupon is None:
         raise CouponNotFound()
     return coupon
@@ -166,9 +166,31 @@ def compute_discount(coupon: Coupon, order_value: float) -> float:
     return round(min(discount, order_value), 2)
 
 
-def redeem(db: Session, coupon: Coupon, user_id: uuid.UUID, payment_id: uuid.UUID) -> None:
-    """Record a successful redemption and bump the coupon's usage counter.
-    Called only after a payment has been verified as successful."""
+def redeem_if_valid(
+    db: Session, coupon_id: uuid.UUID, user_id: uuid.UUID, payment_id: uuid.UUID, order_value: float
+) -> bool:
+    """Lock the coupon row and re-validate + redeem atomically.
+
+    A coupon is first validated when the customer applies it at checkout,
+    but payment capture happens afterward on Razorpay's side, so another
+    concurrent checkout could also pass validation before either redemption
+    is recorded (TOCTOU race on `used_count`/`max_uses`/`per_user_limit`).
+    Locking the row here serializes concurrent redemptions so the usage
+    count can never be pushed past its limit.
+
+    Returns False (without raising) if the coupon is no longer valid by the
+    time payment was verified — the caller's order must still be created
+    since payment was already captured; only the redemption bookkeeping is
+    skipped in that case.
+    """
+    coupon = db.get(Coupon, coupon_id, with_for_update=True)
+    if coupon is None:
+        return False
+    try:
+        validate_for_order(db, coupon.code, user_id, order_value)
+    except (CouponNotFound, CouponError):
+        return False
     db.add(CouponRedemption(coupon_id=coupon.id, user_id=user_id, payment_id=payment_id))
     coupon.used_count += 1
     db.commit()
+    return True

@@ -24,6 +24,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const wishlistBusy = useAppSelector((s) => s.wishlist.mutatingProductId === product.id);
   const [added, setAdded] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const outOfStock = product.stock_quantity === 0;
   const primaryImage = product.images?.find((img) => img.is_primary) ?? product.images?.[0];
   const imageUrl = resolveImageUrl(primaryImage?.image_url);
@@ -63,10 +64,11 @@ export default function ProductCard({ product }: ProductCardProps) {
         className="relative aspect-square rounded-2xl mb-3 overflow-hidden flex items-center justify-center"
         style={{ background: `linear-gradient(135deg, ${product.tint}14 0%, ${product.tint}2A 100%)` }}
       >
-        {imageUrl ? (
+        {imageUrl && !imageFailed ? (
           <img
             src={imageUrl}
             alt={product.name}
+            onError={() => setImageFailed(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (

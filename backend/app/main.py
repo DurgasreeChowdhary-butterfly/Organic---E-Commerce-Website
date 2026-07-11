@@ -24,6 +24,9 @@ app = FastAPI(
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
+    # Never enable Starlette's debug traceback pages in production, regardless
+    # of the DEBUG env var, to avoid leaking stack traces/internals.
+    debug=settings.DEBUG and settings.ENVIRONMENT != "production",
 )
 
 # CORS

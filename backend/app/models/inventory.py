@@ -26,13 +26,13 @@ class InventoryTransaction(Base):
     __tablename__ = "inventory_transactions"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    product_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
+    product_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
     movement_type: Mapped[MovementType] = mapped_column(Enum(MovementType))
     quantity_change: Mapped[int] = mapped_column(Integer)
     stock_before: Mapped[int] = mapped_column(Integer)
     stock_after: Mapped[int] = mapped_column(Integer)
     reason: Mapped[str] = mapped_column(String(255), nullable=True)
-    order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id"), nullable=True)
+    order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id"), nullable=True, index=True)
     admin_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

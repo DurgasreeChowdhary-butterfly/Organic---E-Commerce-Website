@@ -39,7 +39,7 @@ class Product(Base):
     is_new_arrival: Mapped[bool] = mapped_column(Boolean, default=False)
     is_seasonal: Mapped[bool] = mapped_column(Boolean, default=False)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     gst_percentage: Mapped[float] = mapped_column(Numeric(5, 2), default=5.0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
