@@ -9,11 +9,9 @@ import EmptyState from "@/components/common/EmptyState";
 import AddressFormModal, { type AddressFormValues } from "@/components/checkout/AddressFormModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createAddressThunk } from "@/features/addresses/addressesSlice";
-import { createOrder } from "@/features/orders/ordersSlice";
 import { fetchCartThunk } from "@/features/cart/cartSlice";
 import { applyCouponThunk, removeCoupon, clearCouponError } from "@/features/coupon/couponSlice";
 import { createRazorpayOrder, openRazorpayCheckout, verifyRazorpayPayment, reportPaymentFailure } from "@/services/paymentService";
-import { buildTimeline, type DummyOrder } from "@/data/orders";
 import type { Address } from "@/types";
 
 const PAYMENT_METHODS = [
@@ -162,26 +160,10 @@ export default function CheckoutPage() {
         razorpay_signature: paymentResponse.razorpay_signature,
       });
 
-      const id = `o_${Date.now()}`;
-      const order: DummyOrder = {
-        id,
-        order_number: `PRK-${100000 + Math.floor(Math.random() * 899999)}`,
-        status: "confirmed",
-        total_amount: verifyResult.amount,
-        created_at: new Date().toISOString(),
-        items: cartItems.map((i) => ({ product: i.product, quantity: i.quantity })),
-        address,
-        subtotal: orderResponse.subtotal,
-        gst: orderResponse.gst,
-        shipping: orderResponse.shipping,
-        discount: orderResponse.discount,
-        timeline: buildTimeline("confirmed"),
-      };
-      dispatch(createOrder(order));
       dispatch(removeCoupon());
       dispatch(fetchCartThunk()); // cart was already cleared server-side on verify success
       setPlacing(false);
-      navigate(`/orders/${id}`);
+      navigate(`/orders/${verifyResult.order_id}`);
     } catch (err) {
       setPlacing(false);
       setCheckoutError(

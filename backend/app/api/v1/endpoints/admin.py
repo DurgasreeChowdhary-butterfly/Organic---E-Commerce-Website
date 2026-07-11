@@ -2,19 +2,33 @@
 Admin-only endpoints: dashboard stats, product/category/order/customer/inventory management.
 All routes here must be protected by get_current_active_admin.
 """
+import io
 import uuid
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.api.v1.endpoints.orders import _serialize_order as _admin_serialize_order
 from app.db.session import get_db
 from app.api.deps import get_current_active_admin
 from app.crud import category as category_crud
 from app.crud import coupon as coupon_crud
+from app.crud import order as order_crud
+from app.crud import payment as payment_crud
 from app.crud import product as product_crud
+from app.models.order import OrderStatus
 from app.models.product import ProductImage
 from app.schemas.coupon import CouponCreate, CouponListResponse, CouponRead, CouponUpdate
+from app.schemas.order import (
+    AdminOrderListItemRead,
+    AdminOrderListResponse,
+    OrderCancelRequest,
+    OrderRead,
+    OrderRefundRequest,
+    OrderStatusUpdateRequest,
+)
 from app.schemas.product import (
     CategoryCreate,
     CategoryRead,
@@ -26,6 +40,7 @@ from app.schemas.product import (
     ProductUpdate,
 )
 from app.services.storage_service import FileTooLarge, UnsupportedFileType, upload_product_image
+from app.services.invoice_service import generate_invoice_pdf
 
 router = APIRouter(dependencies=[Depends(get_current_active_admin)])
 
@@ -185,28 +200,90 @@ def admin_delete_category(category_id: uuid.UUID, db: Session = Depends(get_db))
 
 
 # --- Order management ---
-@router.get("/orders")
-def admin_list_orders(db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+@router.get("/orders", response_model=AdminOrderListResponse)
+def admin_list_orders(
+    search: Optional[str] = None,
+    status_filter: Optional[OrderStatus] = Query(None, alias="status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """List all orders with search (order number / customer name / email), status filter, and pagination."""
+    filters = order_crud.OrderFilters(search=search, status=status_filter, page=page, page_size=page_size)
+    items, total = order_crud.list_admin(db, filters)
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    return AdminOrderListResponse(
+        items=[
+            AdminOrderListItemRead(
+                id=o.id, order_number=o.order_number, status=o.status, total_amount=float(o.total_amount),
+                item_count=sum(i.quantity for i in o.items), created_at=o.created_at,
+                customer_name=o.user.full_name, customer_email=o.user.email,
+            )
+            for o in items
+        ],
+        total=total, page=page, page_size=page_size, total_pages=total_pages,
+    )
 
 
-@router.put("/orders/{order_id}/status")
-def admin_update_order_status(order_id: str, db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+@router.put("/orders/{order_id}/status", response_model=OrderRead)
+def admin_update_order_status(order_id: uuid.UUID, payload: OrderStatusUpdateRequest, db: Session = Depends(get_db)):
+    """Update an order's status (e.g. confirmed -> packed -> shipped -> ...)."""
+    try:
+        order = order_crud.get(db, order_id)
+    except order_crud.OrderNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    try:
+        order = order_crud.update_status(db, order, payload.status, payload.note)
+    except order_crud.OrderStatusIsFinal as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    return _admin_serialize_order(order)
 
 
-@router.post("/orders/{order_id}/cancel")
-def admin_cancel_order(order_id: str, db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+@router.post("/orders/{order_id}/cancel", response_model=OrderRead)
+def admin_cancel_order(order_id: uuid.UUID, payload: OrderCancelRequest, db: Session = Depends(get_db)):
+    """Cancel an order on the customer's behalf, restocking items."""
+    try:
+        order = order_crud.get(db, order_id)
+    except order_crud.OrderNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    try:
+        order = order_crud.cancel(db, order, payload.reason)
+    except order_crud.OrderCannotBeCancelled as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    return _admin_serialize_order(order)
+
+
+@router.post("/orders/{order_id}/refund", response_model=OrderRead)
+def admin_refund_order(order_id: uuid.UUID, payload: OrderRefundRequest, db: Session = Depends(get_db)):
+    """Refund an order's payment via Razorpay and mark it refunded."""
+    try:
+        order = order_crud.get(db, order_id)
+    except order_crud.OrderNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    try:
+        order = order_crud.refund(db, order, payload.reason)
+    except order_crud.OrderNotRefundable as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except order_crud.OrderStatusIsFinal as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except payment_crud.RazorpayRefundFailed:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not reach the payment gateway. Please try again.")
+    return _admin_serialize_order(order)
 
 
 @router.get("/orders/{order_id}/invoice")
-def admin_generate_invoice(order_id: str, db: Session = Depends(get_db)):
-    """TODO: implement."""
-    raise NotImplementedError
+def admin_generate_invoice(order_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Download a GST invoice PDF for any order."""
+    try:
+        order = order_crud.get(db, order_id)
+    except order_crud.OrderNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    pdf_bytes = generate_invoice_pdf(order)
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{order.order_number}-invoice.pdf"'},
+    )
 
 
 # --- Customer management ---

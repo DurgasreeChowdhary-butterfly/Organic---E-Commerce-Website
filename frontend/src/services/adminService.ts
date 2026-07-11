@@ -1,7 +1,17 @@
 import { apiClient } from "./apiClient";
 import { toDummyProduct, type DummyProductListResponse } from "./productService";
 import type { DummyProduct } from "@/data/products";
-import type { Category, Coupon, CouponListResponse, DiscountType, Product, ProductListResponse } from "@/types";
+import type {
+  AdminOrderListResponse,
+  Category,
+  Coupon,
+  CouponListResponse,
+  DiscountType,
+  Order,
+  OrderStatus,
+  Product,
+  ProductListResponse,
+} from "@/types";
 
 // TODO: implement once the Order/Dashboard modules are in scope.
 export async function getDashboardStats() {
@@ -144,5 +154,34 @@ export async function adminActivateCoupon(id: string): Promise<Coupon> {
 
 export async function adminDeactivateCoupon(id: string): Promise<Coupon> {
   const { data } = await apiClient.post<Coupon>(`/admin/coupons/${id}/deactivate`);
+  return data;
+}
+
+// ---------- Admin: Orders ----------
+
+export interface AdminOrderListParams {
+  search?: string;
+  status?: OrderStatus;
+  page?: number;
+  page_size?: number;
+}
+
+export async function adminListOrders(params: AdminOrderListParams = {}): Promise<AdminOrderListResponse> {
+  const { data } = await apiClient.get<AdminOrderListResponse>("/admin/orders", { params });
+  return data;
+}
+
+export async function adminUpdateOrderStatus(id: string, orderStatus: OrderStatus, note?: string): Promise<Order> {
+  const { data } = await apiClient.put<Order>(`/admin/orders/${id}/status`, { status: orderStatus, note });
+  return data;
+}
+
+export async function adminCancelOrder(id: string, reason?: string): Promise<Order> {
+  const { data } = await apiClient.post<Order>(`/admin/orders/${id}/cancel`, { reason });
+  return data;
+}
+
+export async function adminRefundOrder(id: string, reason?: string): Promise<Order> {
+  const { data } = await apiClient.post<Order>(`/admin/orders/${id}/refund`, { reason });
   return data;
 }

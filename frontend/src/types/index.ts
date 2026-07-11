@@ -117,12 +117,78 @@ export type OrderStatus =
   | "cancelled"
   | "refunded";
 
+export interface OrderItemApi {
+  id: string;
+  product_id: string | null;
+  product_name: string;
+  sku: string;
+  quantity: number;
+  unit_price: number;
+  gst_percentage: number;
+  line_gst: number;
+  line_total: number;
+}
+
+export interface OrderStatusHistoryApi {
+  status: OrderStatus;
+  note?: string | null;
+  created_at: string;
+}
+
 export interface Order {
   id: string;
   order_number: string;
   status: OrderStatus;
+  subtotal: number;
+  discount_amount: number;
+  gst_amount: number;
+  shipping_fee: number;
   total_amount: number;
+  coupon_code?: string | null;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
+  cancel_reason?: string | null;
+  cancelled_at?: string | null;
+  refunded_at?: string | null;
   created_at: string;
+  items: OrderItemApi[];
+  address: Address;
+  status_history: OrderStatusHistoryApi[];
+}
+
+export interface OrderListItem {
+  id: string;
+  order_number: string;
+  status: OrderStatus;
+  total_amount: number;
+  item_count: number;
+  created_at: string;
+}
+
+export interface OrderListResponse {
+  items: OrderListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface AdminOrderListItem extends OrderListItem {
+  customer_name: string;
+  customer_email: string;
+}
+
+export interface AdminOrderListResponse {
+  items: AdminOrderListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface ReorderResponse {
+  cart: CartApi;
+  skipped: string[];
 }
 
 export type DiscountType = "percentage" | "flat";
@@ -177,4 +243,6 @@ export interface VerifyPaymentResponse {
   payment_id: string;
   razorpay_payment_id: string;
   amount: number;
+  order_id: string;
+  order_number: string;
 }

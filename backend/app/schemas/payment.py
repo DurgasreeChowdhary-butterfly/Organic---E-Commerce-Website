@@ -35,6 +35,8 @@ class VerifyPaymentResponse(BaseModel):
     payment_id: uuid.UUID
     razorpay_payment_id: str
     amount: float
+    order_id: uuid.UUID
+    order_number: str
 
 
 class PaymentFailureRequest(BaseModel):

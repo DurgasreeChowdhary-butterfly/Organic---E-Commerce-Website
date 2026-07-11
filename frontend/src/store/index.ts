@@ -10,8 +10,7 @@ import { registerStore } from "./storeRegistry";
 
 /**
  * Root Redux store. Each feature owns its own slice under src/features/*.
- * Auth, products, cart, wishlist, addresses, and coupon are backed by the
- * real FastAPI backend; orders is still backed by dummy data (src/data/*).
+ * Every slice is backed by the real FastAPI backend.
  */
 export const store = configureStore({
   reducer: {

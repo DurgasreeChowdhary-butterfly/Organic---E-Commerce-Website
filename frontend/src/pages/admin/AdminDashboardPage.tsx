@@ -4,12 +4,13 @@ import { IndianRupee, ShoppingBag, Users, Package, TrendingUp } from "lucide-rea
 import StatCard from "@/components/admin/StatCard";
 import LowStockAlert from "@/components/admin/LowStockAlert";
 import Skeleton from "@/components/common/Skeleton";
-import { DASHBOARD_STATS, REVENUE_TREND, ADMIN_ORDERS } from "@/data/admin";
+import { DASHBOARD_STATS, REVENUE_TREND } from "@/data/admin";
 import { STATUS_LABEL, STATUS_COLOR } from "@/data/orders";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { useLoading } from "@/hooks/useLoading";
 import * as adminService from "@/services/adminService";
 import type { DummyProduct } from "@/data/products";
+import type { AdminOrderListItem } from "@/types";
 
 const LOW_STOCK_THRESHOLD = 10;
 
@@ -20,6 +21,8 @@ export default function AdminDashboardPage() {
   const [products, setProducts] = useState<DummyProduct[]>([]);
   const [productTotal, setProductTotal] = useState(0);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [recentOrders, setRecentOrders] = useState<AdminOrderListItem[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
 
   useEffect(() => {
     adminService
@@ -29,6 +32,11 @@ export default function AdminDashboardPage() {
         setProductTotal(res.total);
       })
       .finally(() => setProductsLoading(false));
+
+    adminService
+      .adminListOrders({ page: 1, page_size: 5 })
+      .then((res) => setRecentOrders(res.items))
+      .finally(() => setOrdersLoading(false));
   }, []);
 
   const lowStockProducts = products.filter((p) => p.stock_quantity > 0 && p.stock_quantity < LOW_STOCK_THRESHOLD || p.stock_quantity === 0);
@@ -92,18 +100,26 @@ export default function AdminDashboardPage() {
           <Link to="/admin/orders" className="text-xs font-semibold text-pista-700 hover:underline">View all →</Link>
         </div>
         <div className="space-y-3">
-          {ADMIN_ORDERS.slice(0, 5).map((o) => (
-            <Link key={o.id} to="/admin/orders" className="flex items-center justify-between text-sm border-b border-beige/60 last:border-0 pb-3 last:pb-0 hover:bg-pista-50/40 -mx-2 px-2 rounded-lg transition-colors">
-              <div>
-                <p className="font-medium text-forest-700">{o.order_number}</p>
-                <p className="text-xs text-brown-500">{o.items.length} item{o.items.length > 1 ? "s" : ""}</p>
-              </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${STATUS_COLOR[o.status]}1A`, color: STATUS_COLOR[o.status] }}>
-                {STATUS_LABEL[o.status]}
-              </span>
-              <span className="font-semibold text-forest-700">{formatCurrency(o.total_amount)}</span>
-            </Link>
-          ))}
+          {ordersLoading ? (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => <Skeleton key={i} className="h-10 rounded-lg" />)}
+            </div>
+          ) : recentOrders.length === 0 ? (
+            <p className="text-sm text-brown-500 py-4 text-center">No orders yet.</p>
+          ) : (
+            recentOrders.map((o) => (
+              <Link key={o.id} to="/admin/orders" className="flex items-center justify-between text-sm border-b border-beige/60 last:border-0 pb-3 last:pb-0 hover:bg-pista-50/40 -mx-2 px-2 rounded-lg transition-colors">
+                <div>
+                  <p className="font-medium text-forest-700">{o.order_number}</p>
+                  <p className="text-xs text-brown-500">{o.item_count} item{o.item_count > 1 ? "s" : ""}</p>
+                </div>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${STATUS_COLOR[o.status]}1A`, color: STATUS_COLOR[o.status] }}>
+                  {STATUS_LABEL[o.status]}
+                </span>
+                <span className="font-semibold text-forest-700">{formatCurrency(o.total_amount)}</span>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </div>

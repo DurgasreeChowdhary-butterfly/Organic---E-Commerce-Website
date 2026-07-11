@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Search, Menu, LogOut, Store, AlertTriangle, PackageCheck } from "lucide-react";
-import { ADMIN_ORDERS } from "@/data/admin";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logoutThunk } from "@/features/auth/authSlice";
 import * as adminService from "@/services/adminService";
 import type { DummyProduct } from "@/data/products";
+import type { AdminOrderListItem } from "@/types";
 
 interface AdminTopbarProps {
   onMenuClick?: () => void;
@@ -23,10 +23,14 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const [lowStockProducts, setLowStockProducts] = useState<DummyProduct[]>([]);
+  const [recentOrders, setRecentOrders] = useState<AdminOrderListItem[]>([]);
 
   useEffect(() => {
     adminService.adminListProducts({ page_size: 100 }).then((res) => {
       setLowStockProducts(res.items.filter((p) => p.stock_quantity < 10));
+    });
+    adminService.adminListOrders({ page: 1, page_size: 3 }).then((res) => {
+      setRecentOrders(res.items);
     });
   }, []);
 
@@ -49,7 +53,6 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
     navigate("/login");
   }
 
-  const recentOrders = ADMIN_ORDERS.slice(0, 3);
   const notifCount = lowStockProducts.length + recentOrders.length;
 
   return (

@@ -28,6 +28,10 @@ class RazorpayOrderCreationFailed(Exception):
     pass
 
 
+class RazorpayRefundFailed(Exception):
+    pass
+
+
 def _client() -> razorpay.Client:
     return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
@@ -42,6 +46,16 @@ def create_razorpay_order(amount_rupees: float, receipt: str) -> dict:
         )
     except Exception as exc:  # noqa: BLE001 — surface any SDK/network failure uniformly
         raise RazorpayOrderCreationFailed(str(exc)) from exc
+
+
+def create_refund(razorpay_payment_id: str, amount_rupees: float) -> dict:
+    """Calls Razorpay's Refunds API. Raises RazorpayRefundFailed on any SDK/network error."""
+    amount_paise = int(round(amount_rupees * 100))
+    try:
+        client = _client()
+        return client.payment.refund(razorpay_payment_id, {"amount": amount_paise})
+    except Exception as exc:  # noqa: BLE001 — surface any SDK/network failure uniformly
+        raise RazorpayRefundFailed(str(exc)) from exc
 
 
 def verify_signature(razorpay_order_id: str, razorpay_payment_id: str, razorpay_signature: str) -> bool:

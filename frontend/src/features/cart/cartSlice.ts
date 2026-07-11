@@ -226,6 +226,14 @@ const cartSlice = createSlice({
           Object.assign(state, adaptCart(action.payload.cart));
         }
       )
+      // Cross-slice: reordering a past order also updates the cart.
+      .addMatcher(
+        (action): action is { type: "orders/reorder/fulfilled"; payload: { cart: CartApi } } =>
+          action.type === "orders/reorder/fulfilled",
+        (state, action) => {
+          Object.assign(state, adaptCart(action.payload.cart));
+        }
+      )
       // Reset on logout — either the explicit logoutThunk (fulfilled type
       // "auth/logout/fulfilled") or apiClient's automatic refresh-failure
       // dispatch of the plain "auth/logout" action.

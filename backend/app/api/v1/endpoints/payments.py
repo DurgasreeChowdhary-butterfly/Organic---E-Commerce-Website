@@ -1,12 +1,12 @@
 """
 Razorpay payment gateway integration endpoints.
 
-Order creation happens only after successful payment verification is out of
-scope for this module (see project notes) — what's implemented here is the
-Payment/Transaction lifecycle itself: create a Razorpay order for the
-current cart + address + optional coupon, verify the signature Razorpay
-returns after checkout, and record success/failure. The cart is cleared and
-the coupon (if any) is redeemed only once a payment is verified successful.
+Create a Razorpay order for the current cart + address + optional coupon,
+verify the signature Razorpay returns after checkout, and record
+success/failure. An Order is created automatically — and only — once a
+payment is verified successful; the cart is cleared and the coupon (if any)
+is redeemed at the same time. A failed/forged verification leaves the cart,
+coupon, and order history untouched.
 """
 import uuid
 
@@ -18,6 +18,7 @@ from app.crud import address as address_crud
 from app.crud import cart as cart_crud
 from app.crud import checkout as checkout_crud
 from app.crud import coupon as coupon_crud
+from app.crud import order as order_crud
 from app.crud import payment as payment_crud
 from app.core.config import settings
 from app.db.session import get_db
@@ -144,11 +145,18 @@ def verify_razorpay_payment(
         coupon = coupon_crud.get(db, payment.coupon_id)
         coupon_crud.redeem(db, coupon, current_user.id, payment.id)
 
+    order = order_crud.create_from_payment(db, payment)
+
     cart = cart_crud.get_or_create_cart(db, current_user.id)
     cart_crud.clear_cart(db, cart)
 
     return VerifyPaymentResponse(
-        status="success", payment_id=payment.id, razorpay_payment_id=payment.razorpay_payment_id, amount=float(payment.amount)
+        status="success",
+        payment_id=payment.id,
+        razorpay_payment_id=payment.razorpay_payment_id,
+        amount=float(payment.amount),
+        order_id=order.id,
+        order_number=order.order_number,
     )
 
 
