@@ -27,13 +27,16 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
-  image_url?: string;
+  description?: string | null;
+  image_url?: string | null;
+  product_count?: number;
 }
 
 export interface ProductImage {
   id: string;
   image_url: string;
   is_primary: boolean;
+  sort_order: number;
 }
 
 export interface Product {
@@ -42,23 +45,61 @@ export interface Product {
   slug: string;
   description: string;
   price: number;
-  discount_price?: number;
+  discount_price?: number | null;
+  gst_percentage: number;
+  sku: string;
   stock_quantity: number;
+  is_active: boolean;
+  is_featured: boolean;
   is_best_seller: boolean;
   is_new_arrival: boolean;
-  images?: ProductImage[];
-  category?: Category;
+  is_seasonal: boolean;
+  created_at: string;
+  images: ProductImage[];
+  category: Category;
 }
 
-export interface CartItem {
+export interface ProductListResponse {
+  items: Product[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+/** Raw shapes returned by /cart and /wishlist — see backend/app/schemas/{cart,wishlist}.py */
+export interface CartItemApi {
   id: string;
   product: Product;
   quantity: number;
+  line_subtotal: number;
+  line_discount: number;
+  line_gst: number;
+  line_total: number;
 }
 
-export interface WishlistItem {
+export interface CartApi {
+  items: CartItemApi[];
+  item_count: number;
+  subtotal: number;
+  discount: number;
+  gst: number;
+  total: number;
+}
+
+export interface WishlistItemApi {
   id: string;
   product: Product;
+}
+
+export interface WishlistApi {
+  items: WishlistItemApi[];
+  count: number;
+}
+
+export interface MoveToCartResponse {
+  cart: CartApi;
+  wishlist: WishlistApi;
 }
 
 export type OrderStatus =

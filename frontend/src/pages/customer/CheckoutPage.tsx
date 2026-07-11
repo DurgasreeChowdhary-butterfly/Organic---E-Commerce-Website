@@ -9,7 +9,7 @@ import AddressFormModal, { type AddressFormValues } from "@/components/checkout/
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { addAddress } from "@/features/addresses/addressesSlice";
 import { createOrder } from "@/features/orders/ordersSlice";
-import { clearCart } from "@/features/cart/cartSlice";
+import { clearCartThunk } from "@/features/cart/cartSlice";
 import { buildTimeline, type DummyOrder } from "@/data/orders";
 
 const PAYMENT_METHODS = [
@@ -68,7 +68,7 @@ export default function CheckoutPage() {
         timeline: buildTimeline("confirmed"),
       };
       dispatch(createOrder(order));
-      dispatch(clearCart());
+      dispatch(clearCartThunk());
       setPlacing(false);
       navigate(`/orders/${id}`);
     }, 1200);

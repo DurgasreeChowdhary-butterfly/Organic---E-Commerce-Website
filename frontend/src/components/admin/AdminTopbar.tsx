@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Search, Menu, LogOut, Store, AlertTriangle, PackageCheck } from "lucide-react";
-import { LOW_STOCK_PRODUCTS, ADMIN_ORDERS } from "@/data/admin";
+import { ADMIN_ORDERS } from "@/data/admin";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { logout } from "@/features/auth/authSlice";
+import { logoutThunk } from "@/features/auth/authSlice";
+import * as adminService from "@/services/adminService";
+import type { DummyProduct } from "@/data/products";
 
 interface AdminTopbarProps {
   onMenuClick?: () => void;
@@ -11,7 +13,7 @@ interface AdminTopbarProps {
 
 /** Admin topbar: search, notifications, admin user menu. */
 export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
-  const user = useAppSelector((s) => s.auth.user);
+  const { user, refreshToken } = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
@@ -20,6 +22,13 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
   const [userOpen, setUserOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+  const [lowStockProducts, setLowStockProducts] = useState<DummyProduct[]>([]);
+
+  useEffect(() => {
+    adminService.adminListProducts({ page_size: 100 }).then((res) => {
+      setLowStockProducts(res.items.filter((p) => p.stock_quantity < 10));
+    });
+  }, []);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -36,12 +45,12 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
   }
 
   function handleLogout() {
-    dispatch(logout());
+    dispatch(logoutThunk(refreshToken));
     navigate("/login");
   }
 
   const recentOrders = ADMIN_ORDERS.slice(0, 3);
-  const notifCount = LOW_STOCK_PRODUCTS.length + recentOrders.length;
+  const notifCount = lowStockProducts.length + recentOrders.length;
 
   return (
     <header className="bg-white shadow-soft px-4 md:px-6 py-4 flex items-center justify-between sticky top-0 z-20 gap-3">
@@ -69,7 +78,7 @@ export default function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
             <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-glass overflow-hidden z-50 animate-scale-in origin-top-right">
               <div className="px-4 py-3 border-b border-beige font-semibold text-sm text-forest-700">Notifications</div>
               <div className="max-h-72 overflow-y-auto">
-                {LOW_STOCK_PRODUCTS.slice(0, 3).map((p) => (
+                {lowStockProducts.slice(0, 3).map((p) => (
                   <div key={p.id} className="flex items-start gap-2.5 px-4 py-3 border-b border-beige/60 text-sm">
                     <AlertTriangle className="w-4 h-4 text-soft-orange shrink-0 mt-0.5" />
                     <span className="text-forest-700">{p.name} is low on stock ({p.stock_quantity} left)</span>

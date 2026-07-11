@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Leaf, Droplet, Wheat, Nut, Flame, Truck, ShieldCheck, Sparkles, Star, Mail } from "lucide-react";
 import ProductGrid from "@/components/product/ProductGrid";
+import { ProductGridSkeleton } from "@/components/common/Skeleton";
 import SectionHeading from "@/components/common/SectionHeading";
 import Button from "@/components/common/Button";
-import { CATEGORIES, BEST_SELLERS, NEW_ARRIVALS, SEASONAL_PRODUCTS } from "@/data/products";
 import { TESTIMONIALS, BANNER_OFFERS, CERTIFICATIONS } from "@/data/misc";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchHomeProductsThunk } from "@/features/products/productsSlice";
 
 const CATEGORY_ICONS: Record<string, typeof Leaf> = {
   "cold-pressed-oils": Droplet,
@@ -28,6 +30,13 @@ export default function HomePage() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const categories = useAppSelector((s) => s.products.categories);
+  const { featured, latest, homeStatus } = useAppSelector((s) => s.products);
+
+  useEffect(() => {
+    dispatch(fetchHomeProductsThunk());
+  }, [dispatch]);
 
   useEffect(() => {
     const interval = setInterval(() => setRingActive((i) => (i + 1) % HARVEST_RING.length), 2200);
@@ -95,7 +104,7 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-8">
         <SectionHeading eyebrow="Shop by" title="Categories" />
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          {CATEGORIES.map((c, i) => {
+          {categories.map((c, i) => {
             const Icon = CATEGORY_ICONS[c.slug] ?? Leaf;
             return (
               <Link
@@ -127,25 +136,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ---------- Best Sellers ---------- */}
+      {/* ---------- Featured (Best Sellers) ---------- */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-10">
-        <SectionHeading eyebrow="Curated for you" title="Best Sellers" action={{ label: "View all", onClick: () => navigate("/products?filter=best-seller") }} />
-        <ProductGrid products={BEST_SELLERS} />
+        <SectionHeading eyebrow="Curated for you" title="Best Sellers" action={{ label: "View all", onClick: () => navigate("/products?filter=featured") }} />
+        {homeStatus === "loading" ? <ProductGridSkeleton /> : <ProductGrid products={featured} />}
       </section>
 
-      {/* ---------- New Arrivals ---------- */}
+      {/* ---------- Latest (New Arrivals) ---------- */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-10">
-        <SectionHeading eyebrow="Just landed" title="New Arrivals" action={{ label: "View all", onClick: () => navigate("/products?filter=new-arrival") }} />
-        <ProductGrid products={NEW_ARRIVALS} />
+        <SectionHeading eyebrow="Just landed" title="New Arrivals" action={{ label: "View all", onClick: () => navigate("/products?sort=newest") }} />
+        {homeStatus === "loading" ? <ProductGridSkeleton /> : <ProductGrid products={latest} />}
       </section>
-
-      {/* ---------- Seasonal ---------- */}
-      {SEASONAL_PRODUCTS.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 md:px-8 py-10">
-          <SectionHeading eyebrow="While it lasts" title="Seasonal Picks" />
-          <ProductGrid products={SEASONAL_PRODUCTS} />
-        </section>
-      )}
 
       {/* ---------- Why Choose Us ---------- */}
       <section className="py-16 bg-forest-700 mt-6">

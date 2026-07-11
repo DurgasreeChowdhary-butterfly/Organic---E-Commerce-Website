@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { IndianRupee, ShoppingBag, Users, Package, TrendingUp } from "lucide-react";
 import StatCard from "@/components/admin/StatCard";
@@ -7,10 +8,30 @@ import { DASHBOARD_STATS, REVENUE_TREND, ADMIN_ORDERS } from "@/data/admin";
 import { STATUS_LABEL, STATUS_COLOR } from "@/data/orders";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { useLoading } from "@/hooks/useLoading";
+import * as adminService from "@/services/adminService";
+import type { DummyProduct } from "@/data/products";
+
+const LOW_STOCK_THRESHOLD = 10;
 
 export default function AdminDashboardPage() {
   const maxRevenue = Math.max(...REVENUE_TREND.map((r) => r.revenue));
   const loading = useLoading(300);
+
+  const [products, setProducts] = useState<DummyProduct[]>([]);
+  const [productTotal, setProductTotal] = useState(0);
+  const [productsLoading, setProductsLoading] = useState(true);
+
+  useEffect(() => {
+    adminService
+      .adminListProducts({ page_size: 100 })
+      .then((res) => {
+        setProducts(res.items);
+        setProductTotal(res.total);
+      })
+      .finally(() => setProductsLoading(false));
+  }, []);
+
+  const lowStockProducts = products.filter((p) => p.stock_quantity > 0 && p.stock_quantity < LOW_STOCK_THRESHOLD || p.stock_quantity === 0);
 
   if (loading) {
     return (
@@ -37,7 +58,7 @@ export default function AdminDashboardPage() {
         <StatCard label="Revenue (30d)" value={DASHBOARD_STATS.revenue.value} change={DASHBOARD_STATS.revenue.change} trend={DASHBOARD_STATS.revenue.trend} icon={IndianRupee} to="/admin/orders" />
         <StatCard label="Orders" value={DASHBOARD_STATS.orders.value} change={DASHBOARD_STATS.orders.change} trend={DASHBOARD_STATS.orders.trend} icon={ShoppingBag} to="/admin/orders" />
         <StatCard label="Customers" value={DASHBOARD_STATS.customers.value} change={DASHBOARD_STATS.customers.change} trend={DASHBOARD_STATS.customers.trend} icon={Users} to="/admin/customers" />
-        <StatCard label="Products" value={DASHBOARD_STATS.products.value} change={DASHBOARD_STATS.products.change} trend={DASHBOARD_STATS.products.trend} icon={Package} to="/admin/products" />
+        <StatCard label="Products" value={productsLoading ? "…" : productTotal.toString()} icon={Package} to="/admin/products" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -62,7 +83,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        <LowStockAlert />
+        <LowStockAlert products={lowStockProducts} loading={productsLoading} />
       </div>
 
       <div className="rounded-3xl bg-white shadow-soft p-6 mt-6">

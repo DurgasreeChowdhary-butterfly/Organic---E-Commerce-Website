@@ -35,8 +35,14 @@ class Settings(BaseSettings):
     # WhatsApp
     WHATSAPP_BUSINESS_NUMBER: str = ""
 
-    # CORS - comma separated in .env, parsed to list
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]
+    # CORS - comma separated in .env (kept as a raw string: pydantic-settings
+    # would otherwise try to JSON-decode a List[str] field, which breaks on
+    # a plain comma-separated value). Use `allowed_origins_list` to consume it.
+    ALLOWED_ORIGINS: str = "http://localhost:5173"
+
+    @property
+    def allowed_origins_list(self) -> List[str]:
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

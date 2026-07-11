@@ -1,8 +1,8 @@
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, Package, FolderTree, ClipboardList, Users, Boxes, Leaf, Store, LogOut, X } from "lucide-react";
 import clsx from "clsx";
-import { useAppDispatch } from "@/store/hooks";
-import { logout } from "@/features/auth/authSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { logoutThunk } from "@/features/auth/authSlice";
 
 const links = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -20,6 +20,7 @@ interface AdminSidebarProps {
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const dispatch = useAppDispatch();
+  const refreshToken = useAppSelector((s) => s.auth.refreshToken);
 
   return (
     <>
@@ -59,7 +60,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           Back to Store
         </NavLink>
         <button
-          onClick={() => { dispatch(logout()); onNavigate?.(); }}
+          onClick={() => { dispatch(logoutThunk(refreshToken)); onNavigate?.(); }}
           className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-red-300 hover:bg-white/10"
         >
           <LogOut className="w-4.5 h-4.5" />

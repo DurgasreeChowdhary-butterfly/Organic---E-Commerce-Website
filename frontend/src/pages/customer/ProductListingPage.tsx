@@ -1,51 +1,64 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal, X, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import ProductGrid from "@/components/product/ProductGrid";
 import ProductFilters, { type FilterState } from "@/components/product/ProductFilters";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import { ProductGridSkeleton } from "@/components/common/Skeleton";
-import { PRODUCTS, CATEGORIES } from "@/data/products";
-import { useLoading } from "@/hooks/useLoading";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchProductsThunk } from "@/features/products/productsSlice";
+import { useDebounce } from "@/hooks/useDebounce";
+import type { ProductListParams } from "@/services/productService";
 
 const SORT_OPTIONS = [
   { value: "popular", label: "Popularity" },
   { value: "price_low", label: "Price: Low to High" },
   { value: "price_high", label: "Price: High to Low" },
-  { value: "rating", label: "Customer Rating" },
+  { value: "newest", label: "Newest First" },
 ];
 
 export default function ProductListingPage() {
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get("category");
   const filterParam = searchParams.get("filter");
-  const [sort, setSort] = useState("popular");
+  const sortParam = searchParams.get("sort");
+  const dispatch = useAppDispatch();
+
+  const [sort, setSort] = useState(sortParam ?? "popular");
+  const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     categories: categoryParam ? [categoryParam] : [],
     maxPrice: 800,
-    bestSellerOnly: filterParam === "best-seller",
+    bestSellerOnly: false,
     newArrivalOnly: filterParam === "new-arrival",
   });
-  const loading = useLoading(300);
+  const featuredOnly = filterParam === "featured";
+  const debouncedFilters = useDebounce(filters, 300);
 
-  const activeCategory = CATEGORIES.find((c) => filters.categories.length === 1 && filters.categories[0] === c.slug);
+  const categories = useAppSelector((s) => s.products.categories);
+  const { items, total, totalPages, listStatus, listError } = useAppSelector((s) => s.products);
+  const loading = listStatus === "loading" || listStatus === "idle";
 
-  const filtered = useMemo(() => {
-    let result = PRODUCTS.filter((p) => {
-      if (filters.categories.length > 0 && !filters.categories.includes(p.categorySlug)) return false;
-      if ((p.discount_price ?? p.price) > filters.maxPrice) return false;
-      if (filters.bestSellerOnly && !p.isBestSeller) return false;
-      if (filters.newArrivalOnly && !p.isNewArrival) return false;
-      return true;
-    });
+  const activeCategory = categories.find((c) => filters.categories.length === 1 && filters.categories[0] === c.slug);
 
-    if (sort === "price_low") result = [...result].sort((a, b) => (a.discount_price ?? a.price) - (b.discount_price ?? b.price));
-    if (sort === "price_high") result = [...result].sort((a, b) => (b.discount_price ?? b.price) - (a.discount_price ?? a.price));
-    if (sort === "rating") result = [...result].sort((a, b) => b.rating - a.rating);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedFilters, sort, featuredOnly]);
 
-    return result;
-  }, [filters, sort]);
+  useEffect(() => {
+    const params: ProductListParams = {
+      sort: sort as ProductListParams["sort"],
+      page,
+      page_size: 12,
+      max_price: debouncedFilters.maxPrice,
+    };
+    if (debouncedFilters.categories.length > 0) params.category = debouncedFilters.categories.join(",");
+    if (debouncedFilters.bestSellerOnly) params.best_seller = true;
+    if (debouncedFilters.newArrivalOnly) params.new_arrival = true;
+    if (featuredOnly) params.featured = true;
+    dispatch(fetchProductsThunk(params));
+  }, [dispatch, debouncedFilters, sort, page, featuredOnly]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
@@ -83,7 +96,7 @@ export default function ProductListingPage() {
 
         <div className="flex-1">
           <div className="flex items-center justify-between mb-5">
-            <span className="text-sm text-brown-500">{filtered.length} product{filtered.length !== 1 ? "s" : ""}</span>
+            <span className="text-sm text-brown-500">{total} product{total !== 1 ? "s" : ""}</span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
@@ -92,7 +105,34 @@ export default function ProductListingPage() {
               {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
-          {loading ? <ProductGridSkeleton /> : <ProductGrid products={filtered} />}
+
+          {listError && (
+            <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 mb-4">
+              <AlertCircle className="w-4 h-4 shrink-0" /> {listError}
+            </div>
+          )}
+
+          {loading ? <ProductGridSkeleton /> : <ProductGrid products={items} />}
+
+          {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-8">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="flex items-center gap-1 text-sm font-semibold text-forest-700 border border-beige rounded-full px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:border-pista-500 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" /> Prev
+              </button>
+              <span className="text-sm text-brown-500">Page {page} of {totalPages}</span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="flex items-center gap-1 text-sm font-semibold text-forest-700 border border-beige rounded-full px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:border-pista-500 transition-colors"
+              >
+                Next <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

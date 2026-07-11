@@ -1,6 +1,4 @@
-import { PRODUCTS } from "./products";
 import { ORDERS } from "./orders";
-import { CATEGORIES } from "./products";
 
 export interface AdminCustomer {
   id: string;
@@ -25,13 +23,15 @@ export const ADMIN_CUSTOMERS: AdminCustomer[] = [
 const totalRevenue = ORDERS.reduce((sum, o) => sum + o.total_amount, 0);
 const avgOrder = ORDERS.length > 0 ? Math.round(totalRevenue / ORDERS.length) : 0;
 
+// NOTE: `products`/`lowStock` are no longer here — the Products module now
+// comes from the real backend, so AdminDashboardPage/AdminTopbar fetch
+// those two stats live instead of reading a static dummy array. Revenue/
+// orders/customers stay dummy (Order module is still out of scope).
 export const DASHBOARD_STATS = {
   revenue: { value: `₹${totalRevenue.toLocaleString("en-IN")}`, change: "+12.4%", trend: "up" as const },
   orders: { value: ORDERS.length.toString(), change: "+6.1%", trend: "up" as const },
   customers: { value: ADMIN_CUSTOMERS.length.toString(), change: "+3.8%", trend: "up" as const },
-  products: { value: PRODUCTS.length.toString(), change: "+2", trend: "up" as const },
   avgOrderValue: { value: `₹${avgOrder.toLocaleString("en-IN")}`, change: "-1.2%", trend: "down" as const },
-  lowStock: { value: PRODUCTS.filter((p) => p.stock_quantity < 10).length.toString(), change: "needs attention", trend: "down" as const },
 };
 
 export const REVENUE_TREND = [
@@ -43,13 +43,5 @@ export const REVENUE_TREND = [
   { month: "Jun", revenue: 84000 },
   { month: "Jul", revenue: 91000 },
 ];
-
-export const ADMIN_CATEGORIES = CATEGORIES.map((c, i) => ({
-  ...c,
-  productCount: PRODUCTS.filter((p) => p.categorySlug === c.slug).length,
-  status: i === 5 ? ("inactive" as const) : ("active" as const),
-}));
-
-export const LOW_STOCK_PRODUCTS = PRODUCTS.filter((p) => p.stock_quantity < 10);
 
 export const ADMIN_ORDERS = ORDERS;

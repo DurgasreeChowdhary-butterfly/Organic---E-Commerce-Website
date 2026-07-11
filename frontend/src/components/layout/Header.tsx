@@ -3,9 +3,8 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Search, ShoppingCart, Heart, User, Leaf, Menu, X, Package, MapPin, LogOut, LogIn } from "lucide-react";
 import clsx from "clsx";
 import SearchBar from "@/components/common/SearchBar";
-import { CATEGORIES } from "@/data/products";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { logout } from "@/features/auth/authSlice";
+import { logoutThunk } from "@/features/auth/authSlice";
 
 /**
  * Premium sticky header: logo, category nav, search bar, and account/
@@ -20,9 +19,10 @@ export default function Header() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { isAuthenticated, user } = useAppSelector((s) => s.auth);
+  const { isAuthenticated, user, refreshToken } = useAppSelector((s) => s.auth);
   const cartCount = useAppSelector((s) => s.cart.items.reduce((sum, i) => sum + i.quantity, 0));
   const wishlistCount = useAppSelector((s) => s.wishlist.items.length);
+  const categories = useAppSelector((s) => s.products.categories);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -39,7 +39,7 @@ export default function Header() {
   }, []);
 
   function handleLogout() {
-    dispatch(logout());
+    dispatch(logoutThunk(refreshToken));
     setAccountOpen(false);
     navigate("/");
   }
@@ -60,7 +60,7 @@ export default function Header() {
         </Link>
 
         <nav className="hidden lg:flex items-center gap-6 font-body text-sm font-medium text-forest-700 shrink-0">
-          {CATEGORIES.slice(0, 4).map((c) => (
+          {categories.slice(0, 4).map((c) => (
             <NavLink key={c.id} to={`/products?category=${c.slug}`} className="hover:text-pista-700 transition-colors whitespace-nowrap">
               {c.name}
             </NavLink>
@@ -153,7 +153,7 @@ export default function Header() {
 
       {menuOpen && (
         <div className="lg:hidden px-4 pb-4 flex flex-col gap-3 font-body text-sm text-forest-700 animate-fade-up">
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <NavLink key={c.id} to={`/products?category=${c.slug}`} onClick={() => setMenuOpen(false)}>{c.name}</NavLink>
           ))}
           <div className="border-t border-beige my-1" />

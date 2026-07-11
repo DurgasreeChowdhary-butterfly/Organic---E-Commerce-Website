@@ -1,5 +1,34 @@
 import type { Address, Order, OrderStatus, User } from "@/types";
-import { PRODUCTS } from "./products";
+import type { DummyProduct } from "./products";
+
+// Self-contained dummy products for order history display (the Order
+// module is still fully dummy/out of scope — this intentionally does not
+// pull from the real product catalog/API).
+const OIL_CATEGORY = { id: "cat-oils", name: "Cold Pressed Oils", slug: "cold-pressed-oils" };
+const SPICE_CATEGORY = { id: "cat-spices", name: "Spices", slug: "spices" };
+const MILLET_CATEGORY = { id: "cat-millets", name: "Millets", slug: "millets" };
+const DRYFRUIT_CATEGORY = { id: "cat-dryfruits", name: "Dry Fruits", slug: "dry-fruits" };
+
+function dummyOrderProduct(overrides: Partial<DummyProduct> & Pick<DummyProduct, "id" | "name" | "slug" | "price" | "category">): DummyProduct {
+  return {
+    description: "", gst_percentage: 5, sku: overrides.id.toUpperCase(), stock_quantity: 20,
+    is_active: true, is_featured: false, is_best_seller: false, is_new_arrival: false, is_seasonal: false,
+    created_at: new Date().toISOString(), images: [], categorySlug: overrides.category.slug,
+    rating: 0, reviewCount: 0, tint: "#8FA84D", weight: overrides.category.name,
+    isBestSeller: false, isNewArrival: false, isSeasonal: false, specifications: [],
+    ...overrides,
+  };
+}
+
+const PRODUCTS: DummyProduct[] = [
+  dummyOrderProduct({ id: "op1", name: "Wood-Pressed Groundnut Oil", slug: "wood-pressed-groundnut-oil", price: 549, discount_price: 449, category: OIL_CATEGORY }),
+  dummyOrderProduct({ id: "op2", name: "Foxtail Millet", slug: "foxtail-millet", price: 229, discount_price: 189, category: MILLET_CATEGORY }),
+  dummyOrderProduct({ id: "op3", name: "Himalayan Pink Rock Salt", slug: "himalayan-pink-rock-salt", price: 129, category: SPICE_CATEGORY }),
+  dummyOrderProduct({ id: "op4", name: "Whole Kashmiri Almonds", slug: "whole-kashmiri-almonds", price: 799, discount_price: 699, category: DRYFRUIT_CATEGORY }),
+  dummyOrderProduct({ id: "op5", name: "Turmeric Root Powder", slug: "turmeric-root-powder", price: 179, discount_price: 149, category: SPICE_CATEGORY }),
+  dummyOrderProduct({ id: "op8", name: "Cold Pressed Coconut Oil", slug: "cold-pressed-coconut-oil", price: 429, discount_price: 379, category: OIL_CATEGORY }),
+  dummyOrderProduct({ id: "op10", name: "Cinnamon Sticks", slug: "cinnamon-sticks", price: 159, category: SPICE_CATEGORY }),
+];
 
 export const CURRENT_USER: User = {
   id: "u1",
@@ -71,7 +100,7 @@ export const ORDERS: DummyOrder[] = [
   {
     id: "o3", order_number: "PRK-100270", status: "confirmed", total_amount: 638,
     created_at: "2026-07-08T09:05:00Z",
-    items: [{ product: PRODUCTS[7], quantity: 1 }, { product: PRODUCTS[9], quantity: 1 }],
+    items: [{ product: PRODUCTS[5], quantity: 1 }, { product: PRODUCTS[6], quantity: 1 }],
     address: ADDRESSES[1], subtotal: 588, gst: 30, shipping: 0, discount: 20,
     timeline: buildTimeline("confirmed"),
   },

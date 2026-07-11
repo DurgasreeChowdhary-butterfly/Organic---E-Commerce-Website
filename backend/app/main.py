@@ -5,11 +5,17 @@ This is the main entry point that wires together middleware, routers,
 and startup/shutdown events. Business logic lives in services/, data
 access in crud/, and route definitions in api/v1/endpoints/.
 """
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.api.v1.router import api_router
+
+STATIC_ROOT = Path(__file__).resolve().parent.parent / "static"
+STATIC_ROOT.mkdir(exist_ok=True)
 
 app = FastAPI(
     title="Organic Products E-commerce API",
@@ -23,7 +29,7 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,6 +38,8 @@ app.add_middleware(
 # TODO: register global exception handlers (validation errors, 404, 500)
 # TODO: register request logging middleware
 # TODO: register rate limiting middleware
+
+app.mount("/static", StaticFiles(directory=str(STATIC_ROOT)), name="static")
 
 app.include_router(api_router, prefix="/api/v1")
 

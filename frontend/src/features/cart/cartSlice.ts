@@ -1,71 +1,243 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import axios from "axios";
+import * as cartService from "@/services/cartService";
+import { toDummyProduct } from "@/services/productService";
 import type { DummyProduct } from "@/data/products";
+import type { CartApi } from "@/types";
 
-const STORAGE_KEY = "prakruti_cart";
+function apiErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const detail = (err.response?.data as { detail?: string } | undefined)?.detail;
+    if (typeof detail === "string") return detail;
+  }
+  return fallback;
+}
 
 export interface CartItem {
   id: string;
   product: DummyProduct;
   quantity: number;
+  lineSubtotal: number;
+  lineDiscount: number;
+  lineGst: number;
+  lineTotal: number;
 }
+
+type AsyncStatus = "idle" | "loading" | "succeeded" | "error";
 
 export interface CartState {
   items: CartItem[];
-  couponCode: string | null;
-}
-
-function loadPersisted(): CartItem[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as CartItem[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persist(items: CartItem[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  itemCount: number;
+  subtotal: number;
+  discount: number;
+  gst: number;
+  total: number;
+  status: AsyncStatus;
+  error: string | null;
+  /** Item id currently being updated/removed — drives per-row loading state. */
+  mutatingId: string | null;
+  /** Snapshot for rolling back an optimistic update if the backend rejects it. */
+  _snapshot: Pick<CartState, "items" | "itemCount" | "subtotal" | "discount" | "gst" | "total"> | null;
 }
 
 const initialState: CartState = {
-  items: loadPersisted(),
-  couponCode: null,
+  items: [],
+  itemCount: 0,
+  subtotal: 0,
+  discount: 0,
+  gst: 0,
+  total: 0,
+  status: "idle",
+  error: null,
+  mutatingId: null,
+  _snapshot: null,
 };
+
+function adaptCart(data: CartApi) {
+  return {
+    items: data.items.map((i) => ({
+      id: i.id,
+      product: toDummyProduct(i.product),
+      quantity: i.quantity,
+      lineSubtotal: i.line_subtotal,
+      lineDiscount: i.line_discount,
+      lineGst: i.line_gst,
+      lineTotal: i.line_total,
+    })),
+    itemCount: data.item_count,
+    subtotal: data.subtotal,
+    discount: data.discount,
+    gst: data.gst,
+    total: data.total,
+  };
+}
+
+function snapshotOf(state: CartState) {
+  // Shallow-copy each item so later in-place mutations to the Immer draft
+  // (e.g. bumping item.quantity for the optimistic update) don't also
+  // silently mutate this snapshot — they'd otherwise alias the same draft
+  // objects, making rollback on rejection a no-op.
+  return {
+    items: state.items.map((i) => ({ ...i })),
+    itemCount: state.itemCount,
+    subtotal: state.subtotal,
+    discount: state.discount,
+    gst: state.gst,
+    total: state.total,
+  };
+}
+
+export const fetchCartThunk = createAsyncThunk("cart/fetch", async (_: void, { rejectWithValue }) => {
+  try {
+    return await cartService.getCart();
+  } catch (err) {
+    return rejectWithValue(apiErrorMessage(err, "Could not load your cart"));
+  }
+});
+
+export const addToCartThunk = createAsyncThunk(
+  "cart/add",
+  async ({ productId, quantity = 1 }: { productId: string; quantity?: number }, { rejectWithValue }) => {
+    try {
+      return await cartService.addToCart(productId, quantity);
+    } catch (err) {
+      return rejectWithValue(apiErrorMessage(err, "Could not add this item to your cart"));
+    }
+  }
+);
+
+export const updateCartItemThunk = createAsyncThunk(
+  "cart/updateItem",
+  async ({ itemId, quantity }: { itemId: string; quantity: number }, { rejectWithValue }) => {
+    try {
+      return await cartService.updateCartItem(itemId, quantity);
+    } catch (err) {
+      return rejectWithValue(apiErrorMessage(err, "Could not update quantity"));
+    }
+  }
+);
+
+export const removeCartItemThunk = createAsyncThunk(
+  "cart/removeItem",
+  async (itemId: string, { rejectWithValue }) => {
+    try {
+      return await cartService.removeCartItem(itemId);
+    } catch (err) {
+      return rejectWithValue(apiErrorMessage(err, "Could not remove this item"));
+    }
+  }
+);
+
+export const clearCartThunk = createAsyncThunk("cart/clear", async (_: void, { rejectWithValue }) => {
+  try {
+    return await cartService.clearCart();
+  } catch (err) {
+    return rejectWithValue(apiErrorMessage(err, "Could not clear your cart"));
+  }
+});
 
 const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
-    addToCart(state, action: PayloadAction<{ product: DummyProduct; quantity?: number }>) {
-      const { product, quantity = 1 } = action.payload;
-      const existing = state.items.find((i) => i.product.id === product.id);
-      if (existing) {
-        const cap = product.stock_quantity || 99;
-        existing.quantity = Math.min(existing.quantity + quantity, cap);
-      } else {
-        state.items.push({ id: `ci_${product.id}`, product, quantity });
-      }
-      persist(state.items);
+    clearCartError(state) {
+      state.error = null;
     },
-    updateQuantity(state, action: PayloadAction<{ id: string; quantity: number }>) {
-      const item = state.items.find((i) => i.id === action.payload.id);
-      if (item) item.quantity = Math.max(1, action.payload.quantity);
-      persist(state.items);
+    resetCart(state) {
+      Object.assign(state, initialState);
     },
-    removeFromCart(state, action: PayloadAction<string>) {
-      state.items = state.items.filter((i) => i.id !== action.payload);
-      persist(state.items);
-    },
-    applyCoupon(state, action: PayloadAction<string | null>) {
-      state.couponCode = action.payload;
-    },
-    clearCart(state) {
-      state.items = [];
-      state.couponCode = null;
-      persist(state.items);
-    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchCartThunk.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(fetchCartThunk.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        Object.assign(state, adaptCart(action.payload));
+      })
+      .addCase(fetchCartThunk.rejected, (state, action) => {
+        state.status = "error";
+        state.error = (action.payload as string) ?? "Could not load your cart";
+      })
+
+      .addCase(addToCartThunk.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(addToCartThunk.fulfilled, (state, action) => {
+        Object.assign(state, adaptCart(action.payload));
+      })
+      .addCase(addToCartThunk.rejected, (state, action) => {
+        state.error = (action.payload as string) ?? "Could not add this item to your cart";
+      })
+
+      // Optimistic quantity update: apply instantly, roll back on failure.
+      .addCase(updateCartItemThunk.pending, (state, action) => {
+        state.error = null;
+        state.mutatingId = action.meta.arg.itemId;
+        state._snapshot = snapshotOf(state);
+        const item = state.items.find((i) => i.id === action.meta.arg.itemId);
+        if (item) item.quantity = action.meta.arg.quantity;
+      })
+      .addCase(updateCartItemThunk.fulfilled, (state, action) => {
+        Object.assign(state, adaptCart(action.payload));
+        state.mutatingId = null;
+        state._snapshot = null;
+      })
+      .addCase(updateCartItemThunk.rejected, (state, action) => {
+        if (state._snapshot) Object.assign(state, state._snapshot);
+        state.mutatingId = null;
+        state._snapshot = null;
+        state.error = (action.payload as string) ?? "Could not update quantity";
+      })
+
+      // Optimistic remove: drop instantly, roll back on failure.
+      .addCase(removeCartItemThunk.pending, (state, action) => {
+        state.error = null;
+        state.mutatingId = action.meta.arg;
+        state._snapshot = snapshotOf(state);
+        state.items = state.items.filter((i) => i.id !== action.meta.arg);
+      })
+      .addCase(removeCartItemThunk.fulfilled, (state, action) => {
+        Object.assign(state, adaptCart(action.payload));
+        state.mutatingId = null;
+        state._snapshot = null;
+      })
+      .addCase(removeCartItemThunk.rejected, (state, action) => {
+        if (state._snapshot) Object.assign(state, state._snapshot);
+        state.mutatingId = null;
+        state._snapshot = null;
+        state.error = (action.payload as string) ?? "Could not remove this item";
+      })
+
+      .addCase(clearCartThunk.fulfilled, (state, action) => {
+        Object.assign(state, adaptCart(action.payload));
+      })
+      .addCase(clearCartThunk.rejected, (state, action) => {
+        state.error = (action.payload as string) ?? "Could not clear your cart";
+      })
+
+      // Cross-slice: a wishlist "move to cart" also updates the cart.
+      .addMatcher(
+        (action): action is { type: "wishlist/moveToCart/fulfilled"; payload: { cart: CartApi } } =>
+          action.type === "wishlist/moveToCart/fulfilled",
+        (state, action) => {
+          Object.assign(state, adaptCart(action.payload.cart));
+        }
+      )
+      // Reset on logout — either the explicit logoutThunk (fulfilled type
+      // "auth/logout/fulfilled") or apiClient's automatic refresh-failure
+      // dispatch of the plain "auth/logout" action.
+      .addMatcher(
+        (action): action is { type: string } =>
+          typeof action?.type === "string" && action.type.startsWith("auth/logout"),
+        (state) => {
+          Object.assign(state, initialState);
+        }
+      );
   },
 });
 
-export const { addToCart, updateQuantity, removeFromCart, applyCoupon, clearCart } = cartSlice.actions;
+export const { clearCartError, resetCart } = cartSlice.actions;
 export default cartSlice.reducer;

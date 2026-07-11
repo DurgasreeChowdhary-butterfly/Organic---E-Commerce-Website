@@ -1,31 +1,102 @@
 """
-Authentication endpoints: register, login, refresh, OTP verification, forgot password.
+Authentication endpoints: register, login, refresh, logout.
+
+OTP verification and forgot-password require an external SMS/email
+provider and are out of scope here — they remain unimplemented stubs.
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
+from jose import JWTError
 from sqlalchemy.orm import Session
 
+from app.core.security import create_access_token, create_refresh_token, decode_token
+from app.crud import token as token_crud
+from app.crud import user as user_crud
 from app.db.session import get_db
-from app.schemas.user import UserCreate, UserLogin, TokenResponse, OTPRequest, OTPVerify
+from app.schemas.user import (
+    AuthResponse,
+    LogoutRequest,
+    OTPRequest,
+    OTPVerify,
+    RefreshRequest,
+    TokenResponse,
+    UserCreate,
+    UserLogin,
+)
 
 router = APIRouter()
 
 
-@router.post("/register", response_model=TokenResponse)
+def _issue_tokens(db: Session, user_id) -> tuple[str, str]:
+    access_token = create_access_token(str(user_id))
+    refresh_token, refresh_payload = create_refresh_token(str(user_id))
+    token_crud.create(db, user_id=user_id, payload=refresh_payload)
+    return access_token, refresh_token
+
+
+@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: UserCreate, db: Session = Depends(get_db)):
-    """Register a new customer account. TODO: implement."""
-    raise NotImplementedError
+    """Register a new customer account and issue tokens."""
+    if user_crud.get_by_email(db, payload.email) is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already registered")
+    if user_crud.get_by_phone(db, payload.phone) is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Phone number is already registered")
+
+    user = user_crud.create(db, payload)
+    access_token, refresh_token = _issue_tokens(db, user.id)
+    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=user)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=AuthResponse)
 def login(payload: UserLogin, db: Session = Depends(get_db)):
-    """Authenticate and issue access/refresh tokens. TODO: implement."""
-    raise NotImplementedError
+    """Authenticate and issue access/refresh tokens."""
+    user = user_crud.authenticate(db, payload.email, payload.password)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
+
+    access_token, refresh_token = _issue_tokens(db, user.id)
+    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=user)
 
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh_token(refresh_token: str):
-    """Exchange a valid refresh token for a new access token. TODO: implement."""
-    raise NotImplementedError
+def refresh_token(payload: RefreshRequest, db: Session = Depends(get_db)):
+    """Exchange a valid, unrevoked refresh token for a new token pair (rotation)."""
+    invalid_exc = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
+
+    try:
+        decoded = decode_token(payload.refresh_token)
+    except JWTError:
+        raise invalid_exc
+
+    if decoded.get("type") != "refresh":
+        raise invalid_exc
+
+    stored = token_crud.get_by_jti(db, decoded.get("jti", ""))
+    if not token_crud.is_valid(stored):
+        raise invalid_exc
+
+    user = user_crud.get(db, stored.user_id)
+    if user is None or not user.is_active:
+        raise invalid_exc
+
+    # Rotate: revoke the used refresh token and issue a fresh pair.
+    token_crud.revoke(db, stored)
+    access_token, new_refresh_token = _issue_tokens(db, user.id)
+    return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(payload: LogoutRequest, db: Session = Depends(get_db)):
+    """Revoke a refresh token so it can no longer be used (server-side logout)."""
+    try:
+        decoded = decode_token(payload.refresh_token)
+    except JWTError:
+        return
+    stored = token_crud.get_by_jti(db, decoded.get("jti", ""))
+    if stored is not None and not stored.revoked:
+        token_crud.revoke(db, stored)
+    return
 
 
 @router.post("/otp/request")

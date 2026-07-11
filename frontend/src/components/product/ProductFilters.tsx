@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import clsx from "clsx";
-import { CATEGORIES } from "@/data/products";
+import { useAppSelector } from "@/store/hooks";
 
 export interface FilterState {
   categories: string[];
@@ -30,6 +30,8 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
 
 /** Sidebar/drawer filters for the product listing page. Fully interactive against dummy data. */
 export default function ProductFilters({ filters, onChange }: ProductFiltersProps) {
+  const categories = useAppSelector((s) => s.products.categories);
+
   function toggleCategory(slug: string) {
     const next = filters.categories.includes(slug)
       ? filters.categories.filter((c) => c !== slug)
@@ -41,7 +43,7 @@ export default function ProductFilters({ filters, onChange }: ProductFiltersProp
     <aside className="w-full md:w-64 shrink-0">
       <FilterSection title="Category">
         <div className="space-y-2.5">
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <label key={c.id} className="flex items-center gap-2.5 text-sm text-brown-500 cursor-pointer hover:text-forest-700">
               <input
                 type="checkbox"

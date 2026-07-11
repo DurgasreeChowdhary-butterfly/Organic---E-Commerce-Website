@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { User, Mail, Phone, Lock, Save } from "lucide-react";
+import { User, Mail, Phone, Lock, Save, AlertCircle } from "lucide-react";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import Button from "@/components/common/Button";
 import Modal from "@/components/common/Modal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { updateProfile } from "@/features/auth/authSlice";
+import { clearAuthError, updateProfileThunk } from "@/features/auth/authSlice";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Enter your name"),
@@ -26,7 +26,7 @@ const passwordSchema = z
 type PasswordValues = z.infer<typeof passwordSchema>;
 
 export default function ProfilePage() {
-  const user = useAppSelector((s) => s.auth.user);
+  const { user, status, error } = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
   const [saved, setSaved] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -48,10 +48,12 @@ export default function ProfilePage() {
     reset: resetPassword,
   } = useForm<PasswordValues>({ resolver: zodResolver(passwordSchema) });
 
-  function onSave(values: ProfileValues) {
-    dispatch(updateProfile(values));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  async function onSave(values: ProfileValues) {
+    const result = await dispatch(updateProfileThunk(values));
+    if (updateProfileThunk.fulfilled.match(result)) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
   }
 
   function onChangePassword() {
@@ -86,7 +88,7 @@ export default function ProfilePage() {
             <label className="text-sm font-medium text-forest-700 mb-1.5 block">Full Name</label>
             <div className="flex items-center gap-2 rounded-xl border border-beige px-4 py-3 focus-within:border-pista-500">
               <User className="w-4 h-4 text-brown-500 shrink-0" />
-              <input {...register("full_name")} className="w-full outline-none text-sm bg-transparent" />
+              <input {...register("full_name")} onFocus={() => error && dispatch(clearAuthError())} className="w-full outline-none text-sm bg-transparent" />
             </div>
             {errors.full_name && <p className="text-xs text-red-600 mt-1">{errors.full_name.message}</p>}
           </div>
@@ -114,8 +116,14 @@ export default function ProfilePage() {
               <button type="button" onClick={() => setPasswordOpen(true)} className="text-xs font-semibold text-pista-700 shrink-0 hover:underline">Change</button>
             </div>
           </div>
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+            </div>
+          )}
+
           <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" icon={<Save className="w-4 h-4" />}>Save Changes</Button>
+            <Button type="submit" icon={<Save className="w-4 h-4" />} loading={status === "loading"}>Save Changes</Button>
             {saved && <span className="text-xs text-pista-700 font-semibold">Saved!</span>}
           </div>
         </form>

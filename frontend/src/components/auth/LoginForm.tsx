@@ -3,12 +3,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Button from "@/components/common/Button";
 import Modal from "@/components/common/Modal";
-import { useAppDispatch } from "@/store/hooks";
-import { login } from "@/features/auth/authSlice";
-import { CURRENT_USER } from "@/data/orders";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { clearAuthError, loginThunk } from "@/features/auth/authSlice";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email address"),
@@ -16,20 +15,16 @@ const loginSchema = z.object({
 });
 type LoginValues = z.infer<typeof loginSchema>;
 
-const ADMIN_EMAIL = "admin@prakruti.com";
-
-/**
- * Email/password login form backed by dummy auth. Any valid email + 6+
- * character password logs in; using admin@prakruti.com grants admin access.
- */
+/** Email/password login form backed by the real /auth/login API. */
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
+  const { status, error } = useAppSelector((s) => s.auth);
+  const loading = status === "loading";
 
   const {
     register,
@@ -37,22 +32,13 @@ export default function LoginForm() {
     formState: { errors },
   } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
 
-  function onSubmit(values: LoginValues) {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      const isAdmin = values.email.trim().toLowerCase() === ADMIN_EMAIL;
-      dispatch(
-        login({
-          ...CURRENT_USER,
-          email: values.email.trim(),
-          full_name: isAdmin ? "Admin" : CURRENT_USER.full_name,
-          is_admin: isAdmin,
-        })
-      );
+  async function onSubmit(values: LoginValues) {
+    const result = await dispatch(loginThunk(values));
+    if (loginThunk.fulfilled.match(result)) {
+      const isAdmin = result.payload.user.is_admin;
       const from = (location.state as { from?: Location })?.from?.pathname;
       navigate(from ?? (isAdmin ? "/admin" : "/"), { replace: true });
-    }, 800);
+    }
   }
 
   return (
@@ -63,7 +49,7 @@ export default function LoginForm() {
           <div className="flex items-center gap-2 rounded-xl border border-beige px-4 py-3 focus-within:border-pista-500">
             <Mail className="w-4 h-4 text-brown-500 shrink-0" />
             <input
-              type="email" {...register("email")}
+              type="email" {...register("email")} onFocus={() => error && dispatch(clearAuthError())}
               placeholder="you@email.com" className="w-full outline-none text-sm bg-transparent"
             />
           </div>
@@ -75,7 +61,7 @@ export default function LoginForm() {
           <div className="flex items-center gap-2 rounded-xl border border-beige px-4 py-3 focus-within:border-pista-500">
             <Lock className="w-4 h-4 text-brown-500 shrink-0" />
             <input
-              type={showPassword ? "text" : "password"} {...register("password")}
+              type={showPassword ? "text" : "password"} {...register("password")} onFocus={() => error && dispatch(clearAuthError())}
               placeholder="••••••••" className="w-full outline-none text-sm bg-transparent"
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label="Toggle password visibility">
@@ -85,6 +71,12 @@ export default function LoginForm() {
           {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>}
         </div>
 
+        {error && (
+          <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+          </div>
+        )}
+
         <div className="flex justify-end">
           <button type="button" onClick={() => setForgotOpen(true)} className="text-xs font-semibold text-pista-700 hover:underline">
             Forgot password?
@@ -92,10 +84,6 @@ export default function LoginForm() {
         </div>
 
         <Button type="submit" fullWidth size="lg" loading={loading}>Log In</Button>
-
-        <p className="text-[11px] text-brown-500 text-center">
-          Demo: any email + 6-char password logs you in. Use <strong>{ADMIN_EMAIL}</strong> for admin access.
-        </p>
       </form>
 
       <Modal

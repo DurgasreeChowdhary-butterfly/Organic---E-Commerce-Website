@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 import { Leaf, ShieldCheck, Mail } from "lucide-react";
-import { CATEGORIES } from "@/data/products";
 import { CERTIFICATIONS } from "@/data/misc";
 import { useState } from "react";
+import { useAppSelector } from "@/store/hooks";
 
 /** Footer with brand info, quick links, categories, newsletter, and certifications. */
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const categories = useAppSelector((s) => s.products.categories);
 
   return (
     <footer className="mt-20">
@@ -51,7 +52,7 @@ export default function Footer() {
           <div>
             <div className="font-semibold text-white mb-3">Shop</div>
             <div className="space-y-2 text-pista-100/80">
-              {CATEGORIES.slice(0, 4).map((c) => (
+              {categories.slice(0, 4).map((c) => (
                 <div key={c.id}><Link to={`/products?category=${c.slug}`} className="hover:text-white">{c.name}</Link></div>
               ))}
             </div>

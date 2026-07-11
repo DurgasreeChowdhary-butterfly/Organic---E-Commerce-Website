@@ -1,8 +1,22 @@
-// TODO: uncomment once wired to the real backend
-// import { apiClient } from "./apiClient";
+import { apiClient } from "./apiClient";
+import type { MoveToCartResponse, WishlistApi } from "@/types";
 
-// TODO: implement calls to /wishlist, /wishlist/items/{productId}
+export async function getWishlist(): Promise<WishlistApi> {
+  const { data } = await apiClient.get<WishlistApi>("/wishlist/");
+  return data;
+}
 
-export async function getWishlist() {
-  throw new Error("Not implemented");
+export async function addToWishlist(productId: string): Promise<WishlistApi> {
+  const { data } = await apiClient.post<WishlistApi>(`/wishlist/items/${productId}`);
+  return data;
+}
+
+export async function removeFromWishlist(productId: string): Promise<WishlistApi> {
+  const { data } = await apiClient.delete<WishlistApi>(`/wishlist/items/${productId}`);
+  return data;
+}
+
+export async function moveToCart(productId: string): Promise<MoveToCartResponse> {
+  const { data } = await apiClient.post<MoveToCartResponse>(`/wishlist/items/${productId}/move-to-cart`);
+  return data;
 }

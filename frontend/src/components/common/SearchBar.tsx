@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { PRODUCTS } from "@/data/products";
+import * as productService from "@/services/productService";
+import type { DummyProduct } from "@/data/products";
 import { useDebounce } from "@/hooks/useDebounce";
 
 interface SearchBarProps {
@@ -9,10 +10,12 @@ interface SearchBarProps {
   autoFocus?: boolean;
 }
 
-/** Smart search input with a live dummy-data suggestions dropdown. */
+/** Smart search input with a live suggestions dropdown backed by the real search API. */
 export default function SearchBar({ onClose, autoFocus }: SearchBarProps) {
   const [query, setQuery] = useState("");
-  const debounced = useDebounce(query, 200);
+  const [suggestions, setSuggestions] = useState<DummyProduct[]>([]);
+  const [loading, setLoading] = useState(false);
+  const debounced = useDebounce(query, 250);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -20,9 +23,28 @@ export default function SearchBar({ onClose, autoFocus }: SearchBarProps) {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
-  const suggestions = debounced.length > 0
-    ? PRODUCTS.filter((p) => p.name.toLowerCase().includes(debounced.toLowerCase())).slice(0, 5)
-    : [];
+  useEffect(() => {
+    if (debounced.trim().length === 0) {
+      setSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    productService
+      .searchProducts(debounced.trim(), 1, 5)
+      .then((res) => {
+        if (!cancelled) setSuggestions(res.items);
+      })
+      .catch(() => {
+        if (!cancelled) setSuggestions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debounced]);
 
   function goToSearch() {
     if (query.trim()) {
@@ -44,7 +66,8 @@ export default function SearchBar({ onClose, autoFocus }: SearchBarProps) {
           placeholder="Search organic foods, spices, oils..."
           className="w-full bg-transparent text-sm outline-none placeholder:text-brown-500/70 text-forest-700"
         />
-        {query && (
+        {loading && <Loader2 className="w-4 h-4 text-brown-500 animate-spin shrink-0" />}
+        {query && !loading && (
           <button onClick={() => setQuery("")} aria-label="Clear search">
             <X className="w-4 h-4 text-brown-500" />
           </button>
@@ -60,7 +83,7 @@ export default function SearchBar({ onClose, autoFocus }: SearchBarProps) {
               className="w-full text-left px-4 py-3 hover:bg-pista-50 flex items-center justify-between text-sm text-forest-700 transition-colors"
             >
               <span>{p.name}</span>
-              <span className="text-xs text-brown-500 capitalize">{p.categorySlug.replace("-", " ")}</span>
+              <span className="text-xs text-brown-500 capitalize">{p.category.name}</span>
             </button>
           ))}
           <button
