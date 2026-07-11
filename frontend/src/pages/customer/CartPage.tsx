@@ -19,7 +19,7 @@ export default function CartPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
         <div className="grid md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 rounded-3xl bg-white shadow-soft p-6 space-y-4">
+          <div className="min-w-0 md:col-span-2 rounded-3xl bg-white shadow-soft p-6 space-y-4">
             {[0, 1, 2].map((i) => (
               <div key={i} className="flex items-center gap-4">
                 <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
@@ -58,7 +58,7 @@ export default function CartPage() {
       )}
 
       <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
+        <div className="min-w-0 md:col-span-2">
           <div className="rounded-3xl bg-white shadow-soft p-6">
             {items.map((item) => (
               <CartItemRow

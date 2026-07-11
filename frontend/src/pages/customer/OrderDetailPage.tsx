@@ -173,7 +173,7 @@ export default function OrderDetailPage() {
       )}
 
       <div className="grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 rounded-3xl bg-white shadow-soft p-6">
+        <div className="min-w-0 md:col-span-2 rounded-3xl bg-white shadow-soft p-6">
           <h2 className="font-semibold text-forest-700 mb-4">Items ({order.items.length})</h2>
           <div className="space-y-4">
             {order.items.map((item) => (

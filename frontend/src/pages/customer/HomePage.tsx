@@ -29,6 +29,7 @@ export default function HomePage() {
   const [ringActive, setRingActive] = useState(0);
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const categories = useAppSelector((s) => s.products.categories);
@@ -43,42 +44,52 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Orbit radius/icon size are computed in JS (not pure CSS), so this listener
+  // lets the same circular graphic scale its orbit proportionally on mobile
+  // instead of only shrinking the outer circle (which would visually detach
+  // the orbiting icons from the ring at small sizes).
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   return (
     <div>
       {/* ---------- Hero ---------- */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 pt-6 md:pt-14 pb-16 grid md:grid-cols-2 gap-10 items-center">
+      <section className="max-w-7xl mx-auto px-4 md:px-8 pt-4 sm:pt-6 md:pt-14 pb-6 sm:pb-16 grid md:grid-cols-2 gap-6 sm:gap-10 items-center">
         <div className="animate-fade-up">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full bg-forest-700 text-cream mb-5">
+          <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-forest-700 text-cream mb-2.5 sm:mb-5">
             100% Certified Organic
           </span>
-          <h1 className="font-display text-4xl md:text-6xl leading-[1.08] text-forest-700 mb-5">
+          <h1 className="font-display text-3xl sm:text-4xl md:text-6xl leading-[1.1] sm:leading-[1.08] text-forest-700 mb-2.5 sm:mb-5">
             From soil to home,<br /><span className="text-pista-700">nothing in between.</span>
           </h1>
-          <p className="text-base md:text-lg text-brown-500 mb-8 max-w-md">
+          <p className="text-sm sm:text-base md:text-lg text-brown-500 mb-4 sm:mb-8 max-w-md">
             Cold-pressed oils, hand-cleaned millets, and stone-ground spices — sourced direct
             from Indian farms and delivered within days of harvest.
           </p>
-          <div className="flex flex-wrap items-center gap-4">
-            <Link to="/products"><Button size="lg" icon={<ArrowRight className="w-4 h-4" />}>Shop the Harvest</Button></Link>
-            <Link to="/about"><Button size="lg" variant="outline">Our Story</Button></Link>
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
+            <Link to="/products"><Button size="lg" icon={<ArrowRight className="w-4 h-4" />} className="!py-2.5 sm:!py-3.5 !text-sm sm:!text-base">Shop the Harvest</Button></Link>
+            <Link to="/about"><Button size="lg" variant="outline" className="!py-2.5 sm:!py-3.5 !text-sm sm:!text-base">Our Story</Button></Link>
           </div>
-          <div className="flex gap-8 mt-10">
-            <div><div className="text-2xl font-display text-forest-700">250+</div><div className="text-xs text-brown-500">Partner Farms</div></div>
-            <div><div className="text-2xl font-display text-forest-700">40k+</div><div className="text-xs text-brown-500">Happy Homes</div></div>
-            <div><div className="text-2xl font-display text-forest-700">0</div><div className="text-xs text-brown-500">Additives</div></div>
+          <div className="flex gap-5 sm:gap-8 mt-5 sm:mt-10">
+            <div><div className="text-lg sm:text-2xl font-display text-forest-700">250+</div><div className="text-[11px] sm:text-xs text-brown-500">Partner Farms</div></div>
+            <div><div className="text-lg sm:text-2xl font-display text-forest-700">40k+</div><div className="text-[11px] sm:text-xs text-brown-500">Happy Homes</div></div>
+            <div><div className="text-lg sm:text-2xl font-display text-forest-700">0</div><div className="text-[11px] sm:text-xs text-brown-500">Additives</div></div>
           </div>
         </div>
 
         <div className="relative flex items-center justify-center animate-float-slow">
-          <div className="relative w-72 h-72 md:w-96 md:h-96 rounded-full flex items-center justify-center bg-[radial-gradient(circle,#F3F7E8_0%,#E4EECB_60%,transparent_100%)]">
-            <div className="absolute inset-6 rounded-full border-2 border-dashed border-pista-300" />
-            <div className="w-28 h-28 md:w-36 md:h-36 rounded-full flex flex-col items-center justify-center text-center shadow-glass bg-forest-700">
-              <span className="text-[10px] uppercase tracking-widest text-gold">This Season</span>
-              <span className="text-white text-sm font-semibold mt-1">{HARVEST_RING[ringActive].label}</span>
+          <div className="relative w-40 h-40 sm:w-72 sm:h-72 md:w-96 md:h-96 rounded-full flex items-center justify-center bg-[radial-gradient(circle,#F3F7E8_0%,#E4EECB_60%,transparent_100%)]">
+            <div className="absolute inset-3 sm:inset-6 rounded-full border-2 border-dashed border-pista-300" />
+            <div className="w-16 h-16 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full flex flex-col items-center justify-center text-center shadow-glass bg-forest-700">
+              <span className="text-[8px] sm:text-[10px] uppercase tracking-widest text-gold">This Season</span>
+              <span className="text-white text-[11px] sm:text-sm font-semibold mt-0.5 sm:mt-1">{HARVEST_RING[ringActive].label}</span>
             </div>
             {HARVEST_RING.map((item, i) => {
               const angle = (i / HARVEST_RING.length) * 2 * Math.PI - Math.PI / 2;
-              const radius = 130;
+              const radius = isMobile ? 55 : 130;
               const x = Math.cos(angle) * radius;
               const y = Math.sin(angle) * radius;
               const Icon = item.icon;
@@ -86,13 +97,13 @@ export default function HomePage() {
               return (
                 <div
                   key={item.label}
-                  className="absolute w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 shadow-soft"
+                  className="absolute w-8 h-8 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-500 shadow-soft"
                   style={{
                     transform: `translate(${x}px, ${y}px) scale(${active ? 1.15 : 1})`,
                     background: active ? "#C9A227" : "#fff",
                   }}
                 >
-                  <Icon className={`w-6 h-6 ${active ? "text-white" : "text-pista-700"}`} />
+                  <Icon className={`w-3.5 h-3.5 sm:w-6 sm:h-6 ${active ? "text-white" : "text-pista-700"}`} />
                 </div>
               );
             })}
@@ -101,22 +112,22 @@ export default function HomePage() {
       </section>
 
       {/* ---------- Categories ---------- */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-5 sm:py-8">
         <SectionHeading eyebrow="Shop by" title="Categories" />
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 sm:gap-4">
           {categories.map((c, i) => {
             const Icon = CATEGORY_ICONS[c.slug] ?? Leaf;
             return (
               <Link
                 key={c.id}
                 to={`/products?category=${c.slug}`}
-                className="rounded-2xl p-5 flex flex-col items-start gap-3 bg-white shadow-soft hover:shadow-glass hover:-translate-y-1 transition-all duration-300 animate-fade-up"
+                className="rounded-2xl p-3 sm:p-5 flex flex-col items-start gap-2 sm:gap-3 bg-white shadow-soft hover:shadow-glass hover:-translate-y-1 transition-all duration-300 animate-fade-up"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
-                <div className="w-11 h-11 rounded-full flex items-center justify-center bg-pista-50">
-                  <Icon className="w-5 h-5 text-pista-700" />
+                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full flex items-center justify-center bg-pista-50">
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-pista-700" />
                 </div>
-                <span className="font-semibold text-sm text-forest-700">{c.name}</span>
+                <span className="font-semibold text-xs sm:text-sm text-forest-700">{c.name}</span>
               </Link>
             );
           })}
@@ -124,35 +135,35 @@ export default function HomePage() {
       </section>
 
       {/* ---------- Offers banner ---------- */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        <div className="grid md:grid-cols-3 gap-4">
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-5 sm:py-8">
+        <div className="grid md:grid-cols-3 gap-2.5 sm:gap-4">
           {BANNER_OFFERS.map((b) => (
-            <div key={b.id} className="rounded-3xl p-6 text-white shadow-soft" style={{ background: `linear-gradient(135deg, ${b.tint} 0%, #1F3D2B 130%)` }}>
-              <p className="text-xs uppercase tracking-widest text-gold mb-2">Limited Time</p>
-              <h3 className="font-display text-xl mb-1">{b.title}</h3>
-              <p className="text-sm text-cream/90">{b.subtitle}</p>
+            <div key={b.id} className="rounded-3xl p-4 sm:p-6 text-white shadow-soft" style={{ background: `linear-gradient(135deg, ${b.tint} 0%, #1F3D2B 130%)` }}>
+              <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gold mb-1 sm:mb-2">Limited Time</p>
+              <h3 className="font-display text-base sm:text-xl mb-0.5 sm:mb-1">{b.title}</h3>
+              <p className="text-xs sm:text-sm text-cream/90">{b.subtitle}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ---------- Featured (Best Sellers) ---------- */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-10">
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-5 sm:py-10">
         <SectionHeading eyebrow="Curated for you" title="Best Sellers" action={{ label: "View all", onClick: () => navigate("/products?filter=featured") }} />
         {homeStatus === "loading" ? <ProductGridSkeleton /> : <ProductGrid products={featured} />}
       </section>
 
       {/* ---------- Latest (New Arrivals) ---------- */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-10">
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-5 sm:py-10">
         <SectionHeading eyebrow="Just landed" title="New Arrivals" action={{ label: "View all", onClick: () => navigate("/products?sort=newest") }} />
         {homeStatus === "loading" ? <ProductGridSkeleton /> : <ProductGrid products={latest} />}
       </section>
 
       {/* ---------- Why Choose Us ---------- */}
-      <section className="py-16 bg-forest-700 mt-6">
+      <section className="py-8 sm:py-16 bg-forest-700 mt-3 sm:mt-6">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <h2 className="font-display text-3xl text-center text-cream mb-10">Why households choose Prakruti</h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <h2 className="font-display text-xl sm:text-3xl text-center text-cream mb-5 sm:mb-10">Why households choose Prakruti</h2>
+          <div className="grid md:grid-cols-3 gap-3 sm:gap-6">
             {[
               { icon: Leaf, title: "Farm Direct", text: "We buy directly from certified organic farms — no middlemen, no markup games." },
               { icon: Droplet, title: "Cold-Pressed, Always", text: "Oils are pressed below 40°C to preserve nutrients and natural aroma." },
@@ -160,10 +171,10 @@ export default function HomePage() {
             ].map((f) => {
               const Icon = f.icon;
               return (
-                <div key={f.title} className="rounded-3xl p-7 bg-white/[0.06]">
-                  <Icon className="w-7 h-7 mb-4 text-gold" />
-                  <h3 className="font-semibold text-lg mb-2 text-white">{f.title}</h3>
-                  <p className="text-sm text-pista-100/80">{f.text}</p>
+                <div key={f.title} className="rounded-3xl p-4 sm:p-7 bg-white/[0.06]">
+                  <Icon className="w-5 h-5 sm:w-7 sm:h-7 mb-2 sm:mb-4 text-gold" />
+                  <h3 className="font-semibold text-sm sm:text-lg mb-1 sm:mb-2 text-white">{f.title}</h3>
+                  <p className="text-xs sm:text-sm text-pista-100/80">{f.text}</p>
                 </div>
               );
             })}
@@ -172,39 +183,39 @@ export default function HomePage() {
       </section>
 
       {/* ---------- Testimonials ---------- */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-16">
-        <h2 className="font-display text-3xl text-center text-forest-700 mb-10">What our customers say</h2>
-        <div className="grid md:grid-cols-3 gap-6">
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-8 sm:py-16">
+        <h2 className="font-display text-xl sm:text-3xl text-center text-forest-700 mb-5 sm:mb-10">What our customers say</h2>
+        <div className="grid md:grid-cols-3 gap-3 sm:gap-6">
           {TESTIMONIALS.map((t) => (
-            <div key={t.id} className="rounded-3xl p-6 bg-white shadow-soft">
-              <div className="flex gap-1 mb-3">
-                {[...Array(t.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-gold text-gold" />)}
+            <div key={t.id} className="rounded-3xl p-4 sm:p-6 bg-white shadow-soft">
+              <div className="flex gap-1 mb-2 sm:mb-3">
+                {[...Array(t.rating)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-gold text-gold" />)}
               </div>
-              <p className="text-sm italic text-brown-500 mb-4">"{t.quote}"</p>
-              <span className="text-sm font-semibold text-forest-700">{t.name}</span>
-              <span className="text-xs text-brown-500"> — {t.city}</span>
+              <p className="text-xs sm:text-sm italic text-brown-500 mb-3 sm:mb-4">"{t.quote}"</p>
+              <span className="text-xs sm:text-sm font-semibold text-forest-700">{t.name}</span>
+              <span className="text-[11px] sm:text-xs text-brown-500"> — {t.city}</span>
             </div>
           ))}
         </div>
       </section>
 
       {/* ---------- Certifications + Newsletter ---------- */}
-      <section className="py-14 bg-pista-50">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 grid md:grid-cols-2 gap-10 items-center">
-          <div className="flex flex-wrap gap-4">
+      <section className="py-8 sm:py-14 bg-pista-50">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 grid md:grid-cols-2 gap-4 sm:gap-10 items-center">
+          <div className="flex flex-wrap gap-2.5 sm:gap-4 min-w-0">
             {CERTIFICATIONS.map((cert) => (
-              <div key={cert} className="flex items-center gap-2 rounded-full px-4 py-2 bg-white text-xs font-semibold text-forest-700 shadow-soft">
+              <div key={cert} className="flex items-center gap-2 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 bg-white text-xs font-semibold text-forest-700 shadow-soft">
                 <ShieldCheck className="w-3.5 h-3.5 text-pista-700" /> {cert}
               </div>
             ))}
           </div>
-          <div className="rounded-3xl p-8 flex flex-col items-start bg-forest-700">
-            <Sparkles className="w-6 h-6 mb-3 text-gold" />
-            <h3 className="font-display text-xl mb-2 text-white">Get early access to seasonal harvests</h3>
-            <p className="text-sm mb-4 text-pista-100/80">One email a month. No spam, just what's freshly in.</p>
+          <div className="rounded-3xl p-4 sm:p-8 flex flex-col items-start bg-forest-700 min-w-0">
+            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 mb-2 sm:mb-3 text-gold" />
+            <h3 className="font-display text-base sm:text-xl mb-1 sm:mb-2 text-white">Get early access to seasonal harvests</h3>
+            <p className="text-xs sm:text-sm mb-3 sm:mb-4 text-pista-100/80">One email a month. No spam, just what's freshly in.</p>
             <form onSubmit={(e) => { e.preventDefault(); setSubscribed(true); }} className="flex w-full gap-2">
-              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="you@email.com" className="flex-1 rounded-full px-4 py-2.5 text-sm outline-none" />
-              <button type="submit" className="font-semibold px-5 py-2.5 rounded-full text-sm bg-gold text-forest-700 flex items-center gap-1.5 shrink-0">
+              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="you@email.com" className="flex-1 min-w-0 rounded-full px-4 py-2 sm:py-2.5 text-sm outline-none" />
+              <button type="submit" className="font-semibold px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm bg-gold text-forest-700 flex items-center gap-1.5 shrink-0">
                 <Mail className="w-3.5 h-3.5" /> Subscribe
               </button>
             </form>

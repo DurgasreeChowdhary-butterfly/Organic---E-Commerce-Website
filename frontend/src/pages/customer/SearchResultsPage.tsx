@@ -25,12 +25,12 @@ export default function SearchResultsPage() {
   }, [dispatch, query, page]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 sm:py-8">
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Search" }]} />
-      <h1 className="font-display text-2xl md:text-3xl text-forest-700 mb-1">
+      <h1 className="font-display text-lg sm:text-2xl md:text-3xl text-forest-700 mb-0.5 sm:mb-1">
         Results for "{query}"
       </h1>
-      <p className="text-sm text-brown-500 mb-6">{loading ? "Searching…" : `${searchTotal} product${searchTotal !== 1 ? "s" : ""} found`}</p>
+      <p className="text-xs sm:text-sm text-brown-500 mb-3 sm:mb-6">{loading ? "Searching…" : `${searchTotal} product${searchTotal !== 1 ? "s" : ""} found`}</p>
       {loading ? <ProductGridSkeleton /> : <ProductGrid products={searchResults} />}
 
       {!loading && totalPages > 1 && (

@@ -61,18 +61,18 @@ export default function ProductListingPage() {
   }, [dispatch, debouncedFilters, sort, page, featuredOnly]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 sm:py-8">
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: activeCategory ? activeCategory.name : "Shop All" }]} />
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl md:text-3xl text-forest-700">
+      <div className="flex items-center justify-between mb-3 sm:mb-6">
+        <h1 className="font-display text-lg sm:text-2xl md:text-3xl text-forest-700">
           {activeCategory ? activeCategory.name : "Shop All Products"}
         </h1>
         <button
           onClick={() => setMobileFiltersOpen(true)}
-          className="md:hidden flex items-center gap-1.5 text-sm font-semibold text-forest-700 border border-beige rounded-full px-3 py-1.5"
+          className="md:hidden flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-forest-700 border border-beige rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5"
         >
-          <SlidersHorizontal className="w-3.5 h-3.5" /> Filters
+          <SlidersHorizontal className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Filters
         </button>
       </div>
 
@@ -95,12 +95,12 @@ export default function ProductListingPage() {
         )}
 
         <div className="flex-1">
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-sm text-brown-500">{total} product{total !== 1 ? "s" : ""}</span>
+          <div className="flex items-center justify-between mb-2.5 sm:mb-5">
+            <span className="text-xs sm:text-sm text-brown-500">{total} product{total !== 1 ? "s" : ""}</span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="text-sm rounded-full border border-beige px-3 py-1.5 text-forest-700 outline-none"
+              className="text-xs sm:text-sm rounded-full border border-beige px-2.5 py-1 sm:px-3 sm:py-1.5 text-forest-700 outline-none"
             >
               {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>

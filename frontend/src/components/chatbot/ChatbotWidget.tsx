@@ -79,7 +79,7 @@ export default function ChatbotWidget() {
   const showStarters = messages.length === 1 && !loading;
 
   return (
-    <div className="fixed bottom-6 left-6 z-40">
+    <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40">
       {open && (
         <div className="mb-3 w-[90vw] max-w-sm rounded-3xl bg-white shadow-glass overflow-hidden animate-scale-in flex flex-col" style={{ height: 480 }}>
           <div className="bg-forest-700 text-white px-4 py-3.5 flex items-center justify-between">
@@ -212,10 +212,10 @@ export default function ChatbotWidget() {
 
       <button
         onClick={() => setOpen(!open)}
-        className="rounded-full shadow-glass bg-forest-700 p-4 text-white hover:scale-110 transition-transform duration-200"
+        className="rounded-full shadow-glass bg-forest-700 p-3 sm:p-4 text-white hover:scale-110 transition-transform duration-200"
         aria-label="Open chat assistant"
       >
-        {open ? <X className="w-6 h-6" /> : <MessageSquareText className="w-6 h-6" />}
+        {open ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <MessageSquareText className="w-5 h-5 sm:w-6 sm:h-6" />}
       </button>
     </div>
   );

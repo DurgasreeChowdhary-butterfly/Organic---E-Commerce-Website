@@ -21,7 +21,7 @@ export default function ProductGrid({ products, columns = 4 }: ProductGridProps)
   }
 
   return (
-    <div className={`grid grid-cols-2 sm:grid-cols-3 ${columns === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-4 md:gap-5`}>
+    <div className={`grid grid-cols-2 sm:grid-cols-3 ${columns === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-2 sm:gap-4 md:gap-5`}>
       {products.map((p, i) => (
         <div key={p.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 60}ms` }}>
           <ProductCard product={p} />

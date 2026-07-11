@@ -152,11 +152,11 @@ export default function Header() {
       )}
 
       {menuOpen && (
-        <div className="lg:hidden px-4 pb-4 flex flex-col gap-3 font-body text-sm text-forest-700 animate-fade-up">
+        <div className="lg:hidden px-4 pb-3 flex flex-col gap-1.5 font-body text-sm text-forest-700 animate-fade-up">
           {categories.map((c) => (
             <NavLink key={c.id} to={`/products?category=${c.slug}`} onClick={() => setMenuOpen(false)}>{c.name}</NavLink>
           ))}
-          <div className="border-t border-beige my-1" />
+          <div className="border-t border-beige my-0.5" />
           <NavLink to="/cart" onClick={() => setMenuOpen(false)}>Cart ({cartCount})</NavLink>
           <NavLink to="/wishlist" onClick={() => setMenuOpen(false)}>Wishlist ({wishlistCount})</NavLink>
           {isAuthenticated ? (

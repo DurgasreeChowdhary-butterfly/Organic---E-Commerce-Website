@@ -58,10 +58,10 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Link
       to={`/products/${product.slug}`}
-      className="group block rounded-3xl bg-white p-4 shadow-soft hover:shadow-glass transition-all duration-300 hover:-translate-y-1"
+      className="group block rounded-3xl bg-white p-2.5 sm:p-4 shadow-soft hover:shadow-glass transition-all duration-300 hover:-translate-y-1"
     >
       <div
-        className="relative aspect-square rounded-2xl mb-3 overflow-hidden flex items-center justify-center"
+        className="relative aspect-[4/3] sm:aspect-square rounded-2xl mb-2 sm:mb-3 overflow-hidden flex items-center justify-center"
         style={{ background: `linear-gradient(135deg, ${product.tint}14 0%, ${product.tint}2A 100%)` }}
       >
         {imageUrl && !imageFailed ? (
@@ -73,7 +73,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           />
         ) : (
           <Leaf
-            className="w-10 h-10 opacity-40 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300"
+            className="w-7 h-7 sm:w-10 sm:h-10 opacity-40 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300"
             style={{ color: product.tint }}
           />
         )}
@@ -106,27 +106,27 @@ export default function ProductCard({ product }: ProductCardProps) {
         </button>
       </div>
 
-      <p className="text-[11px] uppercase tracking-wide text-brown-500 mb-1">{product.weight}</p>
-      <h3 className="text-sm font-medium leading-snug text-forest-700 line-clamp-2 min-h-[2.5rem]">{product.name}</h3>
-      {product.reviewCount > 0 && <div className="mt-1"><StarRating rating={product.rating} reviewCount={product.reviewCount} /></div>}
-      <div className="mt-2"><PriceTag price={product.price} discountPrice={product.discount_price} /></div>
+      <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-brown-500 mb-0.5 sm:mb-1">{product.weight}</p>
+      <h3 className="text-xs sm:text-sm font-medium leading-snug text-forest-700 line-clamp-1 sm:line-clamp-2 min-h-[1.1rem] sm:min-h-[2.5rem]">{product.name}</h3>
+      {product.reviewCount > 0 && <div className="mt-0.5 sm:mt-1"><StarRating rating={product.rating} reviewCount={product.reviewCount} /></div>}
+      <div className="mt-1 sm:mt-2"><PriceTag price={product.price} discountPrice={product.discount_price} /></div>
 
       <button
         onClick={handleAddToCart}
         disabled={outOfStock || addingToCart}
         className={clsx(
-          "mt-3 w-full text-xs font-semibold py-2.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center gap-1.5",
+          "mt-2 sm:mt-3 w-full text-xs font-semibold py-1.5 sm:py-2.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center gap-1.5",
           outOfStock && "border-beige text-brown-500/50 cursor-not-allowed",
           !outOfStock && added && "bg-pista-700 border-pista-700 text-white",
           !outOfStock && !added && "border-pista-500 text-forest-700 hover:bg-pista-700 hover:border-pista-700 hover:text-white"
         )}
       >
         {addingToCart ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
         ) : added ? (
-          <><Check className="w-3.5 h-3.5" /> Added</>
+          <><Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Added</>
         ) : (
-          <><ShoppingCart className="w-3.5 h-3.5" /> Add to Cart</>
+          <><ShoppingCart className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Add to Cart</>
         )}
       </button>
     </Link>

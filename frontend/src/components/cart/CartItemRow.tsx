@@ -22,40 +22,42 @@ export default function CartItemRow({ id, product, quantity, onQuantityChange, o
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
-    <div className="flex items-center gap-4 py-5 border-b border-beige animate-fade-up last:border-b-0">
+    <div className="flex gap-3 sm:gap-4 py-4 sm:py-5 border-b border-beige animate-fade-up last:border-b-0">
       <Link
         to={`/products/${product.slug}`}
-        className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden"
+        className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 overflow-hidden"
         style={{ background: `linear-gradient(135deg, ${product.tint}14 0%, ${product.tint}2A 100%)` }}
       >
         {imageUrl && !imageFailed ? (
           <img src={imageUrl} alt={product.name} onError={() => setImageFailed(true)} className="w-full h-full object-cover" />
         ) : (
-          <Leaf className="w-7 h-7 opacity-40" style={{ color: product.tint }} />
+          <Leaf className="w-6 h-6 sm:w-7 sm:h-7 opacity-40" style={{ color: product.tint }} />
         )}
       </Link>
 
-      <div className="flex-1 min-w-0">
-        <Link to={`/products/${product.slug}`} className="font-medium text-forest-700 hover:text-pista-700 line-clamp-1">
-          {product.name}
-        </Link>
-        <p className="text-xs text-brown-500 mb-2">{product.weight}</p>
-        <PriceTag price={product.price} discountPrice={product.discount_price} size="sm" />
-      </div>
+      <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+        <div className="min-w-0">
+          <Link to={`/products/${product.slug}`} className="text-sm sm:text-base font-medium text-forest-700 hover:text-pista-700 line-clamp-1">
+            {product.name}
+          </Link>
+          <p className="text-xs text-brown-500 mb-1 sm:mb-2">{product.weight}</p>
+          <PriceTag price={product.price} discountPrice={product.discount_price} size="sm" />
+        </div>
 
-      <div className="flex flex-col items-end gap-3 shrink-0">
-        {busy ? (
-          <Loader2 className="w-4 h-4 animate-spin text-brown-500" />
-        ) : (
-          <QuantityStepper quantity={quantity} onChange={(q) => onQuantityChange(id, q)} max={product.stock_quantity} />
-        )}
-        <button
-          onClick={() => onRemove(id)}
-          disabled={busy}
-          className="text-xs text-brown-500 hover:text-red-600 flex items-center gap-1 disabled:opacity-50"
-        >
-          <Trash2 className="w-3.5 h-3.5" /> Remove
-        </button>
+        <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 sm:gap-3 shrink-0">
+          {busy ? (
+            <Loader2 className="w-4 h-4 animate-spin text-brown-500" />
+          ) : (
+            <QuantityStepper quantity={quantity} onChange={(q) => onQuantityChange(id, q)} max={product.stock_quantity} />
+          )}
+          <button
+            onClick={() => onRemove(id)}
+            disabled={busy}
+            className="text-xs text-brown-500 hover:text-red-600 flex items-center gap-1 disabled:opacity-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Remove
+          </button>
+        </div>
       </div>
     </div>
   );

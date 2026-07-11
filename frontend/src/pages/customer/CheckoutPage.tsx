@@ -195,7 +195,7 @@ export default function CheckoutPage() {
       )}
 
       <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-6">
+        <div className="min-w-0 md:col-span-2 space-y-6">
           {/* Address */}
           <div className="rounded-3xl bg-white shadow-soft p-6">
             <div className="flex items-center justify-between mb-4">
@@ -270,7 +270,7 @@ export default function CheckoutPage() {
                   onChange={(e) => { setCouponInput(e.target.value); if (coupon.error) dispatch(clearCouponError()); }}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
                   placeholder="Enter coupon code"
-                  className="flex-1 rounded-full border border-beige px-4 py-2.5 text-sm outline-none focus:border-pista-500 uppercase placeholder:normal-case"
+                  className="flex-1 min-w-0 rounded-full border border-beige px-4 py-2.5 text-sm outline-none focus:border-pista-500 uppercase placeholder:normal-case"
                 />
                 <button
                   onClick={handleApplyCoupon}

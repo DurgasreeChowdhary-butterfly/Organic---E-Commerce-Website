@@ -9,7 +9,7 @@ interface Crumb {
 /** Simple breadcrumb trail for listing/detail pages. */
 export default function Breadcrumbs({ items }: { items: Crumb[] }) {
   return (
-    <nav className="flex items-center flex-wrap gap-1 text-xs text-brown-500 mb-4">
+    <nav className="flex items-center flex-wrap gap-1 text-xs text-brown-500 mb-2 sm:mb-4">
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1">
           {item.to ? (
