@@ -7,6 +7,7 @@ import { fetchMeThunk } from "@/features/auth/authSlice";
 import { fetchCategoriesThunk } from "@/features/products/productsSlice";
 import { fetchCartThunk } from "@/features/cart/cartSlice";
 import { fetchWishlistThunk } from "@/features/wishlist/wishlistSlice";
+import { fetchAddressesThunk } from "@/features/addresses/addressesSlice";
 
 /**
  * Root application component. Global providers (Redux, Router) are
@@ -32,12 +33,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Cart/wishlist are user-scoped on the backend — (re)load them whenever
-    // auth flips true, whether from login, registration, or a valid
-    // persisted session. The slices reset themselves on logout.
+    // Cart/wishlist/addresses are user-scoped on the backend — (re)load them
+    // whenever auth flips true, whether from login, registration, or a
+    // valid persisted session. The slices reset themselves on logout.
     if (isAuthenticated) {
       dispatch(fetchCartThunk());
       dispatch(fetchWishlistThunk());
+      dispatch(fetchAddressesThunk());
     }
   }, [dispatch, isAuthenticated]);
 

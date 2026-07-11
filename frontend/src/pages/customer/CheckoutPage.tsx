@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Plus, Check, CreditCard, Smartphone, Wallet, Landmark, ShoppingBag } from "lucide-react";
+import { MapPin, Plus, Check, CreditCard, Smartphone, Wallet, Landmark, ShoppingBag, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import PriceSummary from "@/components/cart/PriceSummary";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import EmptyState from "@/components/common/EmptyState";
 import AddressFormModal, { type AddressFormValues } from "@/components/checkout/AddressFormModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { addAddress } from "@/features/addresses/addressesSlice";
+import { createAddressThunk } from "@/features/addresses/addressesSlice";
 import { createOrder } from "@/features/orders/ordersSlice";
-import { clearCartThunk } from "@/features/cart/cartSlice";
+import { clearCartThunk, fetchCartThunk } from "@/features/cart/cartSlice";
 import { buildTimeline, type DummyOrder } from "@/data/orders";
+import type { Address } from "@/types";
 
 const PAYMENT_METHODS = [
   { id: "upi", label: "UPI", icon: Smartphone },
@@ -19,20 +20,40 @@ const PAYMENT_METHODS = [
   { id: "wallet", label: "Wallets", icon: Wallet },
 ];
 
+const ADDRESS_TYPE_LABEL: Record<Address["address_type"], string> = {
+  home: "Home",
+  office: "Office",
+  other: "Other",
+};
+
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const cartItems = useAppSelector((s) => s.cart.items);
+  const { items: cartItems, subtotal, discount, gst } = useAppSelector((s) => s.cart);
   const addresses = useAppSelector((s) => s.addresses.items);
 
   const [selectedAddress, setSelectedAddress] = useState(addresses.find((a) => a.is_default)?.id ?? addresses[0]?.id);
   const [payment, setPayment] = useState("upi");
   const [placing, setPlacing] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const subtotal = cartItems.reduce((sum, i) => sum + (i.product.discount_price ?? i.product.price) * i.quantity, 0);
-  const gst = Math.round(subtotal * 0.05);
+  useEffect(() => {
+    // Re-fetch right before checkout so stock/availability reflected in the
+    // cart is as fresh as possible when we validate below.
+    dispatch(fetchCartThunk());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!selectedAddress) {
+      const fallback = addresses.find((a) => a.is_default)?.id ?? addresses[0]?.id;
+      if (fallback) setSelectedAddress(fallback);
+    }
+  }, [addresses, selectedAddress]);
+
   const shipping = subtotal > 499 ? 0 : 59;
+  const stockIssues = cartItems.filter((item) => !item.product.is_active || item.quantity > item.product.stock_quantity);
 
   if (cartItems.length === 0) {
     return (
@@ -42,14 +63,34 @@ export default function CheckoutPage() {
     );
   }
 
-  function handleAddAddress(values: AddressFormValues) {
-    dispatch(addAddress(values));
-    setShowAddressModal(false);
+  async function handleAddAddress(values: AddressFormValues) {
+    setSavingAddress(true);
+    const payload = { ...values, landmark: values.landmark?.trim() ? values.landmark.trim() : undefined };
+    const result = await dispatch(createAddressThunk(payload));
+    setSavingAddress(false);
+    if (createAddressThunk.fulfilled.match(result)) {
+      setShowAddressModal(false);
+      const newDefault = result.payload.find((a) => a.is_default);
+      if (newDefault) setSelectedAddress(newDefault.id);
+    }
   }
 
   function placeOrder() {
+    if (cartItems.length === 0) {
+      setCheckoutError("Your cart is empty.");
+      return;
+    }
     const address = addresses.find((a) => a.id === selectedAddress);
-    if (!address) return;
+    if (!address) {
+      setCheckoutError("Please select a delivery address.");
+      return;
+    }
+    if (stockIssues.length > 0) {
+      setCheckoutError("Some items in your cart are no longer available in the requested quantity. Please update your cart before proceeding.");
+      return;
+    }
+    setCheckoutError(null);
+
     setPlacing(true);
     setTimeout(() => {
       const id = `o_${Date.now()}`;
@@ -57,14 +98,14 @@ export default function CheckoutPage() {
         id,
         order_number: `PRK-${100000 + Math.floor(Math.random() * 899999)}`,
         status: "confirmed",
-        total_amount: subtotal + gst + shipping,
+        total_amount: subtotal - discount + gst + shipping,
         created_at: new Date().toISOString(),
         items: cartItems.map((i) => ({ product: i.product, quantity: i.quantity })),
         address,
         subtotal,
         gst,
         shipping,
-        discount: 0,
+        discount,
         timeline: buildTimeline("confirmed"),
       };
       dispatch(createOrder(order));
@@ -78,6 +119,23 @@ export default function CheckoutPage() {
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Cart", to: "/cart" }, { label: "Checkout" }]} />
       <h1 className="font-display text-2xl md:text-3xl text-forest-700 mb-6">Checkout</h1>
+
+      {checkoutError && (
+        <div className="mb-6 flex items-center gap-2 rounded-2xl bg-red-50 text-red-700 text-sm px-4 py-3">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span className="flex-1">{checkoutError}</span>
+        </div>
+      )}
+
+      {stockIssues.length > 0 && (
+        <div className="mb-6 flex items-center gap-2 rounded-2xl bg-soft-orange/10 text-soft-orange text-sm px-4 py-3">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span className="flex-1">
+            {stockIssues.length === 1 ? "One item" : `${stockIssues.length} items`} in your cart {stockIssues.length === 1 ? "has" : "have"} limited or no stock available.
+          </span>
+          <button onClick={() => navigate("/cart")} className="text-xs font-semibold underline shrink-0">Review Cart</button>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-6">
@@ -103,11 +161,12 @@ export default function CheckoutPage() {
                     )}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-semibold text-forest-700">{addr.label}</span>
-                      {selectedAddress === addr.id && <Check className="w-4 h-4 text-pista-700" />}
+                      <span className="text-sm font-semibold text-forest-700">{addr.full_name} · {ADDRESS_TYPE_LABEL[addr.address_type]}</span>
+                      {selectedAddress === addr.id && <Check className="w-4 h-4 text-pista-700 shrink-0" />}
                     </div>
+                    <p className="text-xs text-brown-500 leading-relaxed mb-1">{addr.mobile_number}</p>
                     <p className="text-xs text-brown-500 leading-relaxed">
-                      {addr.line1}, {addr.line2 && `${addr.line2}, `}{addr.city}, {addr.state} - {addr.pincode}
+                      {addr.house_no}, {addr.street}{addr.landmark && `, ${addr.landmark}`}, {addr.city}, {addr.state} - {addr.pincode}
                     </p>
                   </button>
                 ))}
@@ -119,12 +178,18 @@ export default function CheckoutPage() {
           <div className="rounded-3xl bg-white shadow-soft p-6">
             <h2 className="font-semibold text-forest-700 mb-4">Order Items ({cartItems.length})</h2>
             <div className="space-y-3">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-sm">
-                  <span className="text-forest-700">{item.product.name} <span className="text-brown-500">× {item.quantity}</span></span>
-                  <span className="font-medium text-forest-700">₹{(item.product.discount_price ?? item.product.price) * item.quantity}</span>
-                </div>
-              ))}
+              {cartItems.map((item) => {
+                const hasIssue = !item.product.is_active || item.quantity > item.product.stock_quantity;
+                return (
+                  <div key={item.id} className="flex items-center justify-between text-sm">
+                    <span className="text-forest-700">
+                      {item.product.name} <span className="text-brown-500">× {item.quantity}</span>
+                      {hasIssue && <span className="ml-2 text-[11px] font-semibold text-red-600">Unavailable</span>}
+                    </span>
+                    <span className="font-medium text-forest-700">₹{item.lineTotal.toFixed(2)}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -157,6 +222,7 @@ export default function CheckoutPage() {
         <div>
           <PriceSummary
             subtotal={subtotal}
+            discount={discount}
             gst={gst}
             shipping={shipping}
             ctaLabel="Place Order"
@@ -166,7 +232,12 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <AddressFormModal open={showAddressModal} onClose={() => setShowAddressModal(false)} onSubmit={handleAddAddress} />
+      <AddressFormModal
+        open={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        onSubmit={handleAddAddress}
+        submitting={savingAddress}
+      />
     </div>
   );
 }

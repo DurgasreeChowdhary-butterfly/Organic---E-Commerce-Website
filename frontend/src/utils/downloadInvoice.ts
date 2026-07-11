@@ -15,7 +15,7 @@ export function downloadInvoice(order: DummyOrder) {
     `Status: ${STATUS_LABEL[order.status]}`,
     ``,
     `Ship To:`,
-    `${order.address.label} — ${order.address.line1}${order.address.line2 ? ", " + order.address.line2 : ""}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}`,
+    `${order.address.full_name} — ${order.address.house_no}, ${order.address.street}${order.address.landmark ? ", " + order.address.landmark : ""}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}`,
     ``,
     `Items:`,
     ...order.items.map(

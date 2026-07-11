@@ -99,7 +99,7 @@ export default function OrderDetailPage() {
           <div className="rounded-3xl bg-white shadow-soft p-6">
             <h2 className="font-semibold text-forest-700 mb-3 flex items-center gap-1.5"><MapPin className="w-4 h-4" /> Delivery Address</h2>
             <p className="text-xs text-brown-500 leading-relaxed">
-              {order.address.line1}, {order.address.line2 && `${order.address.line2}, `}{order.address.city}, {order.address.state} - {order.address.pincode}
+              {order.address.house_no}, {order.address.street}{order.address.landmark && `, ${order.address.landmark}`}, {order.address.city}, {order.address.state} - {order.address.pincode}
             </p>
           </div>
 

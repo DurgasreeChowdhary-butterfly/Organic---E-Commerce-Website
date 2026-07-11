@@ -12,14 +12,19 @@ export interface User {
   is_admin: boolean;
 }
 
+export type AddressType = "home" | "office" | "other";
+
 export interface Address {
   id: string;
-  label: string;
-  line1: string;
-  line2?: string;
+  full_name: string;
+  mobile_number: string;
+  house_no: string;
+  street: string;
+  landmark?: string | null;
   city: string;
   state: string;
   pincode: string;
+  address_type: AddressType;
   is_default: boolean;
 }
 

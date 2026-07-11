@@ -41,18 +41,16 @@ export const CURRENT_USER: User = {
 
 export const ADDRESSES: Address[] = [
   {
-    id: "addr1", label: "Home",
-    line1: "402, Willow Residency, 4th Cross",
-    line2: "Indiranagar",
+    id: "addr1", full_name: "Ananya Rao", mobile_number: "9876543210",
+    house_no: "402, Willow Residency", street: "4th Cross, Indiranagar",
     city: "Bengaluru", state: "Karnataka", pincode: "560038",
-    is_default: true,
+    address_type: "home", is_default: true,
   },
   {
-    id: "addr2", label: "Office",
-    line1: "Prestige Tech Park, Tower 3, 6th Floor",
-    line2: "Kadubeesanahalli",
+    id: "addr2", full_name: "Ananya Rao", mobile_number: "9876543210",
+    house_no: "Prestige Tech Park, Tower 3", street: "6th Floor, Kadubeesanahalli",
     city: "Bengaluru", state: "Karnataka", pincode: "560103",
-    is_default: false,
+    address_type: "office", is_default: false,
   },
 ];
 
