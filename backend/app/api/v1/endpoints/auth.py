@@ -5,9 +5,12 @@ OTP verification and forgot-password require an external SMS/email
 provider and are out of scope here — they remain unimplemented stubs.
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from jose import JWTError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.rate_limit import enforce_rate_limit
 from app.core.security import create_access_token, create_refresh_token, decode_token
 from app.crud import token as token_crud
@@ -15,6 +18,7 @@ from app.crud import user as user_crud
 from app.db.session import get_db
 from app.schemas.user import (
     AuthResponse,
+    GoogleLoginRequest,
     LogoutRequest,
     OTPRequest,
     OTPVerify,
@@ -57,6 +61,43 @@ def login(payload: UserLogin, request: Request, db: Session = Depends(get_db)):
     user = user_crud.authenticate(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
+
+    access_token, refresh_token = _issue_tokens(db, user.id)
+    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=user)
+
+
+@router.post("/google", response_model=AuthResponse)
+def google_login(payload: GoogleLoginRequest, request: Request, db: Session = Depends(get_db)):
+    """Continue with Google. Verifies the ID token's signature and audience
+    server-side (never trusts a client-asserted email), then finds-or-links-
+    or-creates the corresponding local User and issues the same access/
+    refresh token pair as password login — full reuse of the existing JWT
+    issuance and refresh-token persistence."""
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_rate_limit(f"google-login:{client_ip}", max_requests=20, window_seconds=60)
+
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Sign-In is not configured on this server yet",
+        )
+
+    try:
+        claims = google_id_token.verify_oauth2_token(
+            payload.id_token, google_requests.Request(), settings.GOOGLE_CLIENT_ID
+        )
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google sign-in token")
+
+    email = claims.get("email")
+    if not email or not claims.get("email_verified", False):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Google account has no verified email")
+
+    user = user_crud.get_or_create_google_user(
+        db, google_id=claims["sub"], email=email, full_name=claims.get("name") or email.split("@")[0]
+    )
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
 

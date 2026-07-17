@@ -99,11 +99,13 @@ def create(
     shipping_fee: float,
     amount: float,
     cart_snapshot: list,
+    affiliate_id: Optional[uuid.UUID] = None,
 ) -> Payment:
     payment = Payment(
         user_id=user_id,
         address_id=address_id,
         coupon_id=coupon_id,
+        affiliate_id=affiliate_id,
         razorpay_order_id=razorpay_order_id,
         subtotal=subtotal,
         discount_amount=discount_amount,

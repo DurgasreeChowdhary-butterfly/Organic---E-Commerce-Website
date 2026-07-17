@@ -9,6 +9,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.crud import cart as cart_crud
+from app.crud import commission as commission_crud
 from app.crud import inventory as inventory_crud
 from app.crud import payment as payment_crud
 from app.models.cart import Cart
@@ -50,6 +51,7 @@ def _with_relations(query):
         selectinload(Order.address),
         selectinload(Order.coupon),
         selectinload(Order.user),
+        selectinload(Order.affiliate),
     )
 
 
@@ -136,6 +138,7 @@ def create_from_payment(db: Session, payment: Payment) -> Order:
         shipping_fee=payment.shipping_fee,
         total_amount=payment.amount,
         coupon_id=payment.coupon_id,
+        affiliate_id=payment.affiliate_id,
         razorpay_order_id=payment.razorpay_order_id,
         razorpay_payment_id=payment.razorpay_payment_id,
     )
@@ -174,6 +177,10 @@ def update_status(db: Session, order: Order, new_status: OrderStatus, note: Opti
     order.status = new_status
     db.add(OrderStatusHistory(order_id=order.id, status=new_status, note=note))
     db.commit()
+    if new_status == OrderStatus.DELIVERED:
+        # Clears the return-window hold on this order's commission (if any)
+        # — see crud/commission.py mark_earned.
+        commission_crud.mark_earned(db, order.id)
     return get(db, order.id)
 
 
@@ -194,6 +201,9 @@ def cancel(db: Session, order: Order, reason: Optional[str] = None) -> Order:
     order.cancel_reason = reason
     db.add(OrderStatusHistory(order_id=order.id, status=OrderStatus.CANCELLED, note=reason or "Cancelled"))
     db.commit()
+    # Cancelled orders never pay out commission — reverse any pending/earned
+    # commission attributed to this order.
+    commission_crud.reverse(db, order.id)
     return get(db, order.id)
 
 
@@ -229,6 +239,9 @@ def refund(db: Session, order: Order, reason: Optional[str] = None) -> Order:
     locked_order.refunded_at = datetime.utcnow()
     db.add(OrderStatusHistory(order_id=locked_order.id, status=OrderStatus.REFUNDED, note=reason or "Refunded"))
     db.commit()
+    # Refunded orders never pay out commission — reverse any pending/earned
+    # commission attributed to this order.
+    commission_crud.reverse(db, locked_order.id)
     return get(db, locked_order.id)
 
 

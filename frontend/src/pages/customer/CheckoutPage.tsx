@@ -138,7 +138,7 @@ export default function CheckoutPage() {
         order_id: orderResponse.razorpay_order_id,
         name: "Prakruti Organics",
         description: `Order for ${cartItems.length} item${cartItems.length > 1 ? "s" : ""}`,
-        prefill: { name: user?.full_name, email: user?.email, contact: user?.phone },
+        prefill: { name: user?.full_name, email: user?.email, contact: user?.phone ?? undefined },
         theme: { color: "#1F3D2B" },
       });
     } catch (err) {

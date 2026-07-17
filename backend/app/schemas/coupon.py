@@ -20,6 +20,14 @@ class CouponBase(BaseModel):
     valid_from: Optional[datetime] = None
     valid_until: Optional[datetime] = None
 
+    # Influencer coupons: `discount_value` above is still the customer's
+    # discount; `influencer_commission_percentage` is the separate cut paid
+    # to the influencer. See crud/commission.py `attribute_order` for how
+    # this takes priority over affiliate-link attribution.
+    is_influencer: bool = False
+    influencer_name: Optional[str] = Field(default=None, max_length=255)
+    influencer_commission_percentage: Optional[float] = Field(default=None, gt=0, le=100)
+
     @field_validator("code")
     @classmethod
     def normalize_code(cls, v: str) -> str:
@@ -31,6 +39,8 @@ class CouponBase(BaseModel):
             raise ValueError("Percentage discount cannot exceed 100")
         if self.valid_from and self.valid_until and self.valid_from >= self.valid_until:
             raise ValueError("valid_from must be before valid_until")
+        if self.is_influencer and (not self.influencer_name or self.influencer_commission_percentage is None):
+            raise ValueError("Influencer coupons require influencer_name and influencer_commission_percentage")
         return self
 
 
@@ -49,6 +59,9 @@ class CouponUpdate(BaseModel):
     is_active: Optional[bool] = None
     valid_from: Optional[datetime] = None
     valid_until: Optional[datetime] = None
+    is_influencer: Optional[bool] = None
+    influencer_name: Optional[str] = Field(default=None, max_length=255)
+    influencer_commission_percentage: Optional[float] = Field(default=None, gt=0, le=100)
 
     @field_validator("code")
     @classmethod

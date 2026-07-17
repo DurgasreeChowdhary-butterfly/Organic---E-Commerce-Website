@@ -35,6 +35,9 @@ class Order(Base):
     shipping_fee: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2))
     coupon_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("coupons.id"), nullable=True)
+    # Copied from Payment.affiliate_id at creation time so attributed orders
+    # can be queried directly off Order without joining Payment.
+    affiliate_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("affiliates.id"), nullable=True)
     razorpay_order_id: Mapped[str] = mapped_column(String(100), nullable=True)
     razorpay_payment_id: Mapped[str] = mapped_column(String(100), nullable=True)
     invoice_url: Mapped[str] = mapped_column(String(500), nullable=True)
@@ -52,6 +55,7 @@ class Order(Base):
     address: Mapped["Address"] = relationship()
     coupon: Mapped["Coupon"] = relationship()
     user: Mapped["User"] = relationship()
+    affiliate: Mapped["Affiliate"] = relationship()
 
 
 class OrderItem(Base):

@@ -34,6 +34,8 @@ const AdminCouponsPage = lazy(() => import("@/pages/admin/AdminCouponsPage"));
 const AdminOrdersPage = lazy(() => import("@/pages/admin/AdminOrdersPage"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin/AdminCustomersPage"));
 const AdminInventoryPage = lazy(() => import("@/pages/admin/AdminInventoryPage"));
+const AdminAffiliatesPage = lazy(() => import("@/pages/admin/AdminAffiliatesPage"));
+const AffiliateDashboardPage = lazy(() => import("@/pages/customer/AffiliateDashboardPage"));
 
 function AdminPageFallback() {
   return (
@@ -71,6 +73,10 @@ export default function AppRoutes() {
           <Route path="/orders/:orderId" element={<OrderDetailPage />} />
           <Route path="/account/addresses" element={<AddressBookPage />} />
           <Route path="/account/profile" element={<ProfilePage />} />
+          <Route
+            path="/affiliate"
+            element={<Suspense fallback={<AdminPageFallback />}><AffiliateDashboardPage /></Suspense>}
+          />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
@@ -105,6 +111,10 @@ export default function AppRoutes() {
           <Route
             path="/admin/inventory"
             element={<Suspense fallback={<AdminPageFallback />}><AdminInventoryPage /></Suspense>}
+          />
+          <Route
+            path="/admin/affiliates"
+            element={<Suspense fallback={<AdminPageFallback />}><AdminAffiliatesPage /></Suspense>}
           />
         </Route>
       </Route>

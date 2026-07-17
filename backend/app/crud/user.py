@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password, verify_password
-from app.models.user import User
+from app.models.user import AuthProvider, User
 from app.schemas.user import UserCreate, UserUpdate
 
 
@@ -16,6 +16,10 @@ def get(db: Session, id: uuid.UUID) -> Optional[User]:
 
 def get_by_email(db: Session, email: str) -> Optional[User]:
     return db.scalar(select(User).where(User.email == email))
+
+
+def get_by_google_id(db: Session, google_id: str) -> Optional[User]:
+    return db.scalar(select(User).where(User.google_id == google_id))
 
 
 def get_by_phone(db: Session, phone: str) -> Optional[User]:
@@ -57,6 +61,36 @@ def remove(db: Session, id: uuid.UUID) -> None:
 
 def authenticate(db: Session, email: str, password: str) -> Optional[User]:
     user = get_by_email(db, email)
-    if user is None or not verify_password(password, user.hashed_password):
+    if user is None or user.hashed_password is None or not verify_password(password, user.hashed_password):
         return None
+    return user
+
+
+def get_or_create_google_user(db: Session, *, google_id: str, email: str, full_name: str) -> User:
+    """Find the user for a verified Google identity, safely linking the
+    Google account onto a pre-existing local (email/password) account rather
+    than ever creating a second, duplicate user for the same email."""
+    user = get_by_google_id(db, google_id)
+    if user is not None:
+        return user
+
+    user = get_by_email(db, email)
+    if user is not None:
+        user.google_id = google_id
+        db.commit()
+        db.refresh(user)
+        return user
+
+    user = User(
+        full_name=full_name,
+        email=email,
+        phone=None,
+        hashed_password=None,
+        google_id=google_id,
+        auth_provider=AuthProvider.GOOGLE,
+        is_verified=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return user

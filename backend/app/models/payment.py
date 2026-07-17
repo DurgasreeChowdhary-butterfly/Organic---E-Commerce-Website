@@ -30,6 +30,10 @@ class Payment(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
     address_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("addresses.id"))
     coupon_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("coupons.id"), nullable=True)
+    # Set at create-order time from the visitor's stored affiliate ref
+    # (see api/v1/endpoints/payments.py) — re-validated server-side, never
+    # trusted as-is from the client beyond "which affiliate code".
+    affiliate_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("affiliates.id"), nullable=True)
 
     razorpay_order_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     razorpay_payment_id: Mapped[str] = mapped_column(String(100), nullable=True, unique=True)
@@ -55,3 +59,4 @@ class Payment(Base):
 
     address: Mapped["Address"] = relationship()
     coupon: Mapped["Coupon"] = relationship()
+    affiliate: Mapped["Affiliate"] = relationship()

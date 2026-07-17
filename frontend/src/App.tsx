@@ -8,6 +8,7 @@ import { fetchCategoriesThunk } from "@/features/products/productsSlice";
 import { fetchCartThunk } from "@/features/cart/cartSlice";
 import { fetchWishlistThunk } from "@/features/wishlist/wishlistSlice";
 import { fetchAddressesThunk } from "@/features/addresses/addressesSlice";
+import { useAffiliateTracking } from "@/hooks/useAffiliateTracking";
 
 /**
  * Root application component. Global providers (Redux, Router) are
@@ -18,6 +19,8 @@ export default function App() {
   const dispatch = useAppDispatch();
   const accessToken = useAppSelector((s) => s.auth.accessToken);
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+
+  useAffiliateTracking();
 
   useEffect(() => {
     // Revalidate the persisted session on load — also refreshes stale user

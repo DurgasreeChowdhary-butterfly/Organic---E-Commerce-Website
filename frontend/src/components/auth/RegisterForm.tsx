@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useNavigate } from "react-router-dom";
 import { User, Mail, Phone, Lock, AlertCircle } from "lucide-react";
 import Button from "@/components/common/Button";
+import GoogleLoginButton from "./GoogleLoginButton";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { clearAuthError, registerThunk } from "@/features/auth/authSlice";
 
@@ -77,6 +78,8 @@ export default function RegisterForm() {
       )}
 
       <Button type="submit" fullWidth size="lg" loading={loading}>Create Account</Button>
+
+      <GoogleLoginButton />
     </form>
   );
 }

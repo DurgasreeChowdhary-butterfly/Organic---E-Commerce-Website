@@ -42,6 +42,11 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
   return data;
 }
 
+export async function googleLogin(idToken: string): Promise<AuthResponse> {
+  const { data } = await apiClient.post<AuthResponse>("/auth/google", { id_token: idToken });
+  return data;
+}
+
 export async function refresh(refreshToken: string): Promise<TokenPair> {
   const { data } = await apiClient.post<TokenPair>("/auth/refresh", { refresh_token: refreshToken });
   return data;

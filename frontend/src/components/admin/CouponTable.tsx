@@ -44,7 +44,14 @@ export default function CouponTable({ coupons, onEdit, onDelete, onToggleActive,
                 const expired = isExpired(c);
                 return (
                   <tr key={c.id} className="border-b border-beige/60 last:border-0 hover:bg-pista-50/40">
-                    <td className="px-5 py-3 font-medium text-forest-700">{c.code}</td>
+                    <td className="px-5 py-3 font-medium text-forest-700">
+                      {c.code}
+                      {c.is_influencer && (
+                        <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gold/20 text-brown-700 align-middle">
+                          Influencer
+                        </span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-brown-500">{formatDiscount(c)}</td>
                     <td className="px-5 py-3 text-brown-500">{formatCurrency(c.min_order_value)}</td>
                     <td className="px-5 py-3 text-brown-500">

@@ -11,3 +11,5 @@ from app.models.coupon import Coupon, CouponRedemption
 from app.models.payment import Payment
 from app.models.inventory import InventoryTransaction
 from app.models.review import Review
+from app.models.affiliate import Affiliate, AffiliateClick
+from app.models.commission import Commission

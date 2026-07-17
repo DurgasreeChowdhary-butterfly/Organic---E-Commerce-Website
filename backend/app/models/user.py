@@ -15,14 +15,24 @@ class AddressType(str, enum.Enum):
     OTHER = "other"
 
 
+class AuthProvider(str, enum.Enum):
+    LOCAL = "local"
+    GOOGLE = "google"
+
+
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     full_name: Mapped[str] = mapped_column(String(255))
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    phone: Mapped[str] = mapped_column(String(20), unique=True, index=True)
-    hashed_password: Mapped[str] = mapped_column(String(255))
+    # Nullable: Google sign-in does not supply a phone number.
+    phone: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=True)
+    # Nullable: Google-only accounts (auth_provider=GOOGLE, never set a
+    # local password) have no hash to store.
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=True)
+    google_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    auth_provider: Mapped[AuthProvider] = mapped_column(Enum(AuthProvider), default=AuthProvider.LOCAL)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)

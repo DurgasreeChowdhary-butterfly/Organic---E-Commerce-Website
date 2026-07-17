@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Package, FolderTree, ClipboardList, Users, Boxes, Leaf, Store, LogOut, X, Tag } from "lucide-react";
+import { LayoutDashboard, Package, FolderTree, ClipboardList, Users, Boxes, Leaf, Store, LogOut, X, Tag, Megaphone } from "lucide-react";
 import clsx from "clsx";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logoutThunk } from "@/features/auth/authSlice";
@@ -9,6 +9,7 @@ const links = [
   { to: "/admin/products", label: "Products", icon: Package, end: false },
   { to: "/admin/categories", label: "Categories", icon: FolderTree, end: false },
   { to: "/admin/coupons", label: "Coupons", icon: Tag, end: false },
+  { to: "/admin/affiliates", label: "Affiliates", icon: Megaphone, end: false },
   { to: "/admin/orders", label: "Orders", icon: ClipboardList, end: false },
   { to: "/admin/customers", label: "Customers", icon: Users, end: false },
   { to: "/admin/inventory", label: "Inventory", icon: Boxes, end: false },

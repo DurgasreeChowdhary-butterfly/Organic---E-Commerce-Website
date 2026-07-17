@@ -10,14 +10,17 @@ coupon, and order history untouched.
 """
 import logging
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.crud import address as address_crud
+from app.crud import affiliate as affiliate_crud
 from app.crud import cart as cart_crud
 from app.crud import checkout as checkout_crud
+from app.crud import commission as commission_crud
 from app.crud import coupon as coupon_crud
 from app.crud import inventory as inventory_crud
 from app.crud import order as order_crud
@@ -93,6 +96,21 @@ def create_razorpay_order(
             status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not reach the payment gateway. Please try again."
         )
 
+    # Backend-authoritative re-validation of the client-supplied affiliate
+    # ref: the code must belong to an approved affiliate and the original
+    # click must still be within the configured attribution window. An
+    # unknown/expired/blocked code is silently dropped rather than erroring
+    # the checkout — attribution is best-effort, never a hard requirement.
+    affiliate_id = None
+    if payload.affiliate_ref:
+        affiliate = affiliate_crud.get_by_code(db, payload.affiliate_ref)
+        if affiliate is not None:
+            click_ts = (
+                datetime.utcfromtimestamp(payload.affiliate_ref_ts / 1000) if payload.affiliate_ref_ts else None
+            )
+            if affiliate_crud.is_attribution_eligible(affiliate, click_ts):
+                affiliate_id = affiliate.id
+
     payment = payment_crud.create(
         db,
         user_id=current_user.id,
@@ -105,6 +123,7 @@ def create_razorpay_order(
         shipping_fee=summary.shipping,
         amount=summary.total,
         cart_snapshot=cart_snapshot,
+        affiliate_id=affiliate_id,
     )
 
     return CreateRazorpayOrderResponse(
@@ -171,6 +190,10 @@ def verify_razorpay_payment(
             status_code=status.HTTP_409_CONFLICT,
             detail="Payment succeeded but one or more items sold out before your order could be confirmed. Our team will contact you to resolve this.",
         )
+
+    # Attribute the order to an influencer coupon or affiliate referral (in
+    # that priority order) — see crud/commission.py attribute_order.
+    commission_crud.attribute_order(db, payment, order)
 
     cart = cart_crud.get_or_create_cart(db, current_user.id)
     cart_crud.clear_cart(db, cart)

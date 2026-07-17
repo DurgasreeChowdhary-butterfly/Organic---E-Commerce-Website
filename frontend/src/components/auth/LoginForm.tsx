@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Button from "@/components/common/Button";
 import Modal from "@/components/common/Modal";
+import GoogleLoginButton from "./GoogleLoginButton";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { clearAuthError, loginThunk } from "@/features/auth/authSlice";
 
@@ -84,6 +85,8 @@ export default function LoginForm() {
         </div>
 
         <Button type="submit" fullWidth size="lg" loading={loading}>Log In</Button>
+
+        <GoogleLoginButton />
       </form>
 
       <Modal

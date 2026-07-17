@@ -4,6 +4,8 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
+from app.models.user import AuthProvider
+
 
 class UserBase(BaseModel):
     full_name: str
@@ -27,12 +29,20 @@ class UserLogin(BaseModel):
 
 
 class UserRead(UserBase):
+    # Overrides UserBase.phone (required) — Google-only accounts never
+    # collect one.
+    phone: Optional[str] = None
     id: uuid.UUID
     is_verified: bool
     is_admin: bool
+    auth_provider: AuthProvider
 
     class Config:
         from_attributes = True
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str
 
 
 class OTPRequest(BaseModel):

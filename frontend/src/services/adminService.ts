@@ -3,7 +3,14 @@ import { toDummyProduct, type DummyProductListResponse } from "./productService"
 import type { DummyProduct } from "@/data/products";
 import type {
   AdminOrderListResponse,
+  AffiliateAdmin,
+  AffiliateListResponse,
+  AffiliateStatus,
+  AttributedOrderSummary,
   Category,
+  Commission,
+  CommissionListResponse,
+  CommissionStatus,
   Coupon,
   CouponListResponse,
   CustomerDetail,
@@ -125,6 +132,9 @@ export interface AdminCouponInput {
   is_active?: boolean;
   valid_from?: string | null;
   valid_until?: string | null;
+  is_influencer?: boolean;
+  influencer_name?: string | null;
+  influencer_commission_percentage?: number | null;
 }
 
 export interface AdminCouponListParams {
@@ -250,5 +260,65 @@ export async function adminListCustomers(params: AdminCustomerListParams = {}): 
 
 export async function adminGetCustomer(id: string): Promise<CustomerDetail> {
   const { data } = await apiClient.get<CustomerDetail>(`/admin/customers/${id}`);
+  return data;
+}
+
+// ---------- Admin: Affiliates ----------
+
+export interface AdminAffiliateListParams {
+  search?: string;
+  status?: AffiliateStatus;
+  page?: number;
+  page_size?: number;
+}
+
+export async function adminListAffiliates(params: AdminAffiliateListParams = {}): Promise<AffiliateListResponse> {
+  const { data } = await apiClient.get<AffiliateListResponse>("/admin/affiliates", { params });
+  return data;
+}
+
+export async function adminApproveAffiliate(id: string): Promise<AffiliateAdmin> {
+  const { data } = await apiClient.post<AffiliateAdmin>(`/admin/affiliates/${id}/approve`);
+  return data;
+}
+
+export async function adminRejectAffiliate(id: string): Promise<AffiliateAdmin> {
+  const { data } = await apiClient.post<AffiliateAdmin>(`/admin/affiliates/${id}/reject`);
+  return data;
+}
+
+export async function adminBlockAffiliate(id: string): Promise<AffiliateAdmin> {
+  const { data } = await apiClient.post<AffiliateAdmin>(`/admin/affiliates/${id}/block`);
+  return data;
+}
+
+export async function adminUpdateAffiliateCommission(id: string, commissionPercentage: number): Promise<AffiliateAdmin> {
+  const { data } = await apiClient.put<AffiliateAdmin>(`/admin/affiliates/${id}/commission`, {
+    commission_percentage: commissionPercentage,
+  });
+  return data;
+}
+
+export async function adminGetAffiliateOrders(id: string): Promise<AttributedOrderSummary[]> {
+  const { data } = await apiClient.get<AttributedOrderSummary[]>(`/admin/affiliates/${id}/orders`);
+  return data;
+}
+
+// ---------- Admin: Commissions ----------
+
+export interface AdminCommissionListParams {
+  affiliate_id?: string;
+  status?: CommissionStatus;
+  page?: number;
+  page_size?: number;
+}
+
+export async function adminListCommissions(params: AdminCommissionListParams = {}): Promise<CommissionListResponse> {
+  const { data } = await apiClient.get<CommissionListResponse>("/admin/commissions", { params });
+  return data;
+}
+
+export async function adminMarkCommissionPaid(id: string): Promise<Commission> {
+  const { data } = await apiClient.post<Commission>(`/admin/commissions/${id}/mark-paid`);
   return data;
 }

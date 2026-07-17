@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Search, ShoppingCart, Heart, User, Leaf, Menu, X, Package, MapPin, LogOut, LogIn } from "lucide-react";
+import { Search, ShoppingCart, Heart, User, Leaf, Menu, X, Package, MapPin, LogOut, LogIn, Megaphone } from "lucide-react";
 import clsx from "clsx";
 import SearchBar from "@/components/common/SearchBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -116,6 +116,9 @@ export default function Header() {
                     <Link to="/account/addresses" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-forest-700 hover:bg-pista-50 transition-colors">
                       <MapPin className="w-4 h-4" /> Addresses
                     </Link>
+                    <Link to="/affiliate" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-forest-700 hover:bg-pista-50 transition-colors">
+                      <Megaphone className="w-4 h-4" /> Affiliate Program
+                    </Link>
                     {user?.is_admin && (
                       <Link to="/admin" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-pista-700 hover:bg-pista-50 transition-colors font-medium">
                         <Leaf className="w-4 h-4" /> Admin Dashboard
@@ -164,6 +167,7 @@ export default function Header() {
               <NavLink to="/account/profile" onClick={() => setMenuOpen(false)}>My Account</NavLink>
               <NavLink to="/orders" onClick={() => setMenuOpen(false)}>My Orders</NavLink>
               <NavLink to="/account/addresses" onClick={() => setMenuOpen(false)}>Addresses</NavLink>
+              <NavLink to="/affiliate" onClick={() => setMenuOpen(false)}>Affiliate Program</NavLink>
               {user?.is_admin && <NavLink to="/admin" onClick={() => setMenuOpen(false)} className="font-semibold text-pista-700">Admin Dashboard</NavLink>}
               <button onClick={() => { setMenuOpen(false); handleLogout(); }} className="text-left text-red-600 font-medium">Log Out</button>
             </>

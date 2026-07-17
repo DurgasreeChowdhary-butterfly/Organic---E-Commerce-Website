@@ -19,6 +19,9 @@ const couponSchema = z
     valid_from: z.string().optional(),
     valid_until: z.string().optional(),
     is_active: z.boolean(),
+    is_influencer: z.boolean(),
+    influencer_name: z.string().optional(),
+    influencer_commission_percentage: z.string().optional(),
   })
   .refine((v) => v.discount_type !== "percentage" || v.discount_value <= 100, {
     message: "Percentage discount cannot exceed 100",
@@ -27,7 +30,15 @@ const couponSchema = z
   .refine((v) => !v.valid_from || !v.valid_until || v.valid_from < v.valid_until, {
     message: "Start date must be before end date",
     path: ["valid_until"],
-  });
+  })
+  .refine((v) => !v.is_influencer || !!v.influencer_name?.trim(), {
+    message: "Influencer name is required for influencer coupons",
+    path: ["influencer_name"],
+  })
+  .refine(
+    (v) => !v.is_influencer || (!!v.influencer_commission_percentage && Number(v.influencer_commission_percentage) > 0),
+    { message: "Influencer commission % is required for influencer coupons", path: ["influencer_commission_percentage"] }
+  );
 
 type CouponFormValues = z.infer<typeof couponSchema>;
 
@@ -53,6 +64,9 @@ const DEFAULT_VALUES: CouponFormValues = {
   valid_from: "",
   valid_until: "",
   is_active: true,
+  is_influencer: false,
+  influencer_name: "",
+  influencer_commission_percentage: "",
 };
 
 /** Shared Add/Edit coupon form used by AdminCouponsPage. */
@@ -80,11 +94,16 @@ export default function CouponFormModal({ open, onClose, onSubmit, initial }: Co
           valid_from: toDateInput(initial.valid_from),
           valid_until: toDateInput(initial.valid_until),
           is_active: initial.is_active,
+          is_influencer: initial.is_influencer,
+          influencer_name: initial.influencer_name ?? "",
+          influencer_commission_percentage:
+            initial.influencer_commission_percentage != null ? String(initial.influencer_commission_percentage) : "",
         }
       : undefined,
   });
 
   const discountType = watch("discount_type");
+  const isInfluencer = watch("is_influencer");
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
@@ -107,6 +126,11 @@ export default function CouponFormModal({ open, onClose, onSubmit, initial }: Co
       valid_from: values.valid_from ? new Date(values.valid_from).toISOString() : null,
       valid_until: values.valid_until ? new Date(values.valid_until).toISOString() : null,
       is_active: values.is_active,
+      is_influencer: values.is_influencer,
+      influencer_name: values.is_influencer ? values.influencer_name?.trim() || null : null,
+      influencer_commission_percentage: values.is_influencer && values.influencer_commission_percentage
+        ? Number(values.influencer_commission_percentage)
+        : null,
     };
 
     const saved = await onSubmit(payload);
@@ -209,6 +233,40 @@ export default function CouponFormModal({ open, onClose, onSubmit, initial }: Co
           <input type="checkbox" {...register("is_active")} className="w-4 h-4 rounded accent-pista-700" />
           Active
         </label>
+
+        <label className="flex items-center gap-2 text-sm text-forest-700 cursor-pointer">
+          <input type="checkbox" {...register("is_influencer")} className="w-4 h-4 rounded accent-pista-700" />
+          Influencer coupon
+        </label>
+
+        {isInfluencer && (
+          <div className="grid grid-cols-2 gap-3 rounded-xl bg-pista-50/40 p-3">
+            <div>
+              <input
+                {...register("influencer_name")}
+                placeholder="Influencer name"
+                className="w-full rounded-xl border border-beige px-4 py-2.5 text-sm outline-none focus:border-pista-500"
+              />
+              {errors.influencer_name && <p className="text-xs text-red-600 mt-1">{errors.influencer_name.message}</p>}
+            </div>
+            <div>
+              <input
+                {...register("influencer_commission_percentage")}
+                placeholder="Influencer commission %"
+                type="number"
+                step="0.01"
+                className="w-full rounded-xl border border-beige px-4 py-2.5 text-sm outline-none focus:border-pista-500"
+              />
+              {errors.influencer_commission_percentage && (
+                <p className="text-xs text-red-600 mt-1">{errors.influencer_commission_percentage.message}</p>
+              )}
+            </div>
+            <p className="col-span-2 text-[11px] text-brown-500">
+              Discount % above is what the customer gets. This commission % is paid to the influencer separately, on
+              successful payment.
+            </p>
+          </div>
+        )}
 
         {formError && <p className="text-xs text-red-600">{formError}</p>}
 

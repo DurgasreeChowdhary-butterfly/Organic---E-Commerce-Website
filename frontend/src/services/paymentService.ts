@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import { getStoredAffiliateRef } from "@/hooks/useAffiliateTracking";
 import type { CreateRazorpayOrderResponse, VerifyPaymentResponse } from "@/types";
 
 export interface CreateRazorpayOrderPayload {
@@ -7,7 +8,15 @@ export interface CreateRazorpayOrderPayload {
 }
 
 export async function createRazorpayOrder(payload: CreateRazorpayOrderPayload): Promise<CreateRazorpayOrderResponse> {
-  const { data } = await apiClient.post<CreateRazorpayOrderResponse>("/payments/razorpay/create-order", payload);
+  // Attach any stored affiliate referral (from a prior `?ref=CODE` visit —
+  // see useAffiliateTracking). The backend independently re-validates the
+  // code/status/expiry window; this is best-effort attribution, never a
+  // hard requirement for checkout to succeed.
+  const storedRef = getStoredAffiliateRef();
+  const { data } = await apiClient.post<CreateRazorpayOrderResponse>("/payments/razorpay/create-order", {
+    ...payload,
+    ...(storedRef ? { affiliate_ref: storedRef.code, affiliate_ref_ts: storedRef.ts } : {}),
+  });
   return data;
 }
 

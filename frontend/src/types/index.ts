@@ -3,13 +3,16 @@
  * Keep these in sync with backend/app/schemas/*.py as the API evolves.
  */
 
+export type AuthProvider = "local" | "google";
+
 export interface User {
   id: string;
   full_name: string;
   email: string;
-  phone: string;
+  phone?: string | null;
   is_verified: boolean;
   is_admin: boolean;
+  auth_provider: AuthProvider;
 }
 
 export type AddressType = "home" | "office" | "other";
@@ -208,6 +211,9 @@ export interface Coupon {
   valid_until?: string | null;
   used_count: number;
   created_at: string;
+  is_influencer: boolean;
+  influencer_name?: string | null;
+  influencer_commission_percentage?: number | null;
 }
 
 export interface CouponListResponse {
@@ -389,4 +395,80 @@ export interface ChatResponse {
   reply: string;
   suggested_products: ChatProductSuggestion[];
   escalate_to_whatsapp: boolean;
+}
+
+// ---------- Affiliate marketing ----------
+
+export type AffiliateStatus = "pending" | "approved" | "rejected" | "blocked";
+
+export interface Affiliate {
+  id: string;
+  affiliate_code: string;
+  status: AffiliateStatus;
+  commission_percentage: number;
+  created_at: string;
+  approved_at?: string | null;
+}
+
+export interface AffiliateAdmin extends Affiliate {
+  user_id: string;
+  full_name: string;
+  email: string;
+}
+
+export interface AffiliateListResponse {
+  items: AffiliateAdmin[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface AffiliateDashboard {
+  affiliate_code: string;
+  status: AffiliateStatus;
+  commission_percentage: number;
+  total_clicks: number;
+  total_orders: number;
+  total_sales: number;
+  commission_pending: number;
+  commission_earned: number;
+  commission_paid: number;
+}
+
+export interface AttributedOrderSummary {
+  order_id: string;
+  order_number: string;
+  order_status: OrderStatus;
+  total_amount: number;
+  commission_status: string;
+  commission_amount: number;
+  created_at: string;
+}
+
+export type CommissionSource = "affiliate" | "influencer_coupon";
+export type CommissionStatus = "pending" | "earned" | "paid" | "reversed";
+
+export interface Commission {
+  id: string;
+  source: CommissionSource;
+  affiliate_id?: string | null;
+  coupon_id?: string | null;
+  order_id: string;
+  order_number: string;
+  percentage_applied: number;
+  amount: number;
+  status: CommissionStatus;
+  created_at: string;
+  earned_at?: string | null;
+  paid_at?: string | null;
+  reversed_at?: string | null;
+}
+
+export interface CommissionListResponse {
+  items: Commission[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }

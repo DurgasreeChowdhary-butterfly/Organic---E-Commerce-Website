@@ -82,8 +82,9 @@ export default function Footer() {
             </div>
           </div>
         </div>
-        <div className="text-center text-[11px] sm:text-xs pt-3 sm:pt-6 border-t border-white/10 text-pista-300">
-          © {new Date().getFullYear()} Prakruti Organics. All rights reserved.
+        <div className="text-center text-[11px] sm:text-xs pt-3 sm:pt-6 border-t border-white/10 text-pista-300 space-y-1">
+          <p>© {new Date().getFullYear()} Prakruti Organics. All rights reserved.</p>
+          <p className="text-pista-300/60">Developed by Uptime Smart Solutions</p>
         </div>
       </div>
     </footer>

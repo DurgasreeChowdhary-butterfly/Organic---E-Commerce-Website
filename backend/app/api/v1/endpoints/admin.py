@@ -14,7 +14,9 @@ from sqlalchemy.orm import Session
 from app.api.v1.endpoints.orders import _serialize_order as _admin_serialize_order
 from app.db.session import get_db
 from app.api.deps import get_current_active_admin
+from app.crud import affiliate as affiliate_crud
 from app.crud import category as category_crud
+from app.crud import commission as commission_crud
 from app.crud import coupon as coupon_crud
 from app.crud import customer as customer_crud
 from app.crud import dashboard as dashboard_crud
@@ -22,10 +24,19 @@ from app.crud import inventory as inventory_crud
 from app.crud import order as order_crud
 from app.crud import payment as payment_crud
 from app.crud import product as product_crud
+from app.models.affiliate import AffiliateStatus
+from app.models.commission import CommissionStatus
 from app.models.order import OrderStatus
 from app.models.product import ProductImage
 from app.models.user import User
 from app.schemas.address import AddressRead
+from app.schemas.affiliate import (
+    AffiliateAdminRead,
+    AffiliateCommissionUpdate,
+    AffiliateListResponse,
+    AttributedOrderSummary,
+)
+from app.schemas.commission import CommissionListResponse, CommissionRead
 from app.schemas.coupon import CouponCreate, CouponListResponse, CouponRead, CouponUpdate
 from app.schemas.customer import CustomerDetailRead, CustomerListItemRead, CustomerListResponse
 from app.schemas.dashboard import DashboardAnalyticsResponse, LowStockAlertRead, RecentOrderRead, TopSellingProductRead
@@ -602,3 +613,163 @@ def admin_deactivate_coupon(coupon_id: uuid.UUID, db: Session = Depends(get_db))
         return coupon_crud.set_active(db, coupon_id, False)
     except coupon_crud.CouponNotFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Coupon not found")
+
+
+# --- Affiliate management ---
+def _affiliate_admin_read(affiliate) -> AffiliateAdminRead:
+    return AffiliateAdminRead(
+        id=affiliate.id,
+        affiliate_code=affiliate.affiliate_code,
+        status=affiliate.status,
+        commission_percentage=float(affiliate.commission_percentage),
+        created_at=affiliate.created_at,
+        approved_at=affiliate.approved_at,
+        user_id=affiliate.user_id,
+        full_name=affiliate.user.full_name,
+        email=affiliate.user.email,
+    )
+
+
+@router.get("/affiliates", response_model=AffiliateListResponse)
+def admin_list_affiliates(
+    search: Optional[str] = None,
+    status_filter: Optional[AffiliateStatus] = Query(None, alias="status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """List/search affiliates by name, email, or affiliate code."""
+    filters = affiliate_crud.AffiliateFilters(search=search, status=status_filter, page=page, page_size=page_size)
+    items, total = affiliate_crud.list_admin(db, filters)
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    return AffiliateListResponse(
+        items=[_affiliate_admin_read(a) for a in items], total=total, page=page, page_size=page_size, total_pages=total_pages
+    )
+
+
+@router.post("/affiliates/{affiliate_id}/approve", response_model=AffiliateAdminRead)
+def admin_approve_affiliate(affiliate_id: uuid.UUID, db: Session = Depends(get_db)):
+    try:
+        affiliate = affiliate_crud.set_status(db, affiliate_id, AffiliateStatus.APPROVED)
+    except affiliate_crud.AffiliateNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Affiliate not found")
+    return _affiliate_admin_read(affiliate)
+
+
+@router.post("/affiliates/{affiliate_id}/reject", response_model=AffiliateAdminRead)
+def admin_reject_affiliate(affiliate_id: uuid.UUID, db: Session = Depends(get_db)):
+    try:
+        affiliate = affiliate_crud.set_status(db, affiliate_id, AffiliateStatus.REJECTED)
+    except affiliate_crud.AffiliateNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Affiliate not found")
+    return _affiliate_admin_read(affiliate)
+
+
+@router.post("/affiliates/{affiliate_id}/block", response_model=AffiliateAdminRead)
+def admin_block_affiliate(affiliate_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Blocks the affiliate — their code stops earning new commissions (see
+    crud/commission.py `attribute_order`, which re-checks status at every
+    attribution) but past commissions are untouched."""
+    try:
+        affiliate = affiliate_crud.set_status(db, affiliate_id, AffiliateStatus.BLOCKED)
+    except affiliate_crud.AffiliateNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Affiliate not found")
+    return _affiliate_admin_read(affiliate)
+
+
+@router.put("/affiliates/{affiliate_id}/commission", response_model=AffiliateAdminRead)
+def admin_update_affiliate_commission(affiliate_id: uuid.UUID, payload: AffiliateCommissionUpdate, db: Session = Depends(get_db)):
+    """Edit an affiliate's commission %. Only applies to future orders —
+    already-created Commission rows snapshot their own percentage."""
+    try:
+        affiliate = affiliate_crud.set_commission_percentage(db, affiliate_id, payload.commission_percentage)
+    except affiliate_crud.AffiliateNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Affiliate not found")
+    return _affiliate_admin_read(affiliate)
+
+
+@router.get("/affiliates/{affiliate_id}/orders", response_model=List[AttributedOrderSummary])
+def admin_affiliate_attributed_orders(affiliate_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Orders attributed to this affiliate, with each order's commission status."""
+    try:
+        affiliate_crud.get(db, affiliate_id)
+    except affiliate_crud.AffiliateNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Affiliate not found")
+
+    results = []
+    for order, commission in affiliate_crud.attributed_orders(db, affiliate_id):
+        results.append(
+            AttributedOrderSummary(
+                order_id=order.id,
+                order_number=order.order_number,
+                order_status=order.status.value,
+                total_amount=float(order.total_amount),
+                commission_status=commission.status.value if commission else "pending",
+                commission_amount=float(commission.amount) if commission else 0.0,
+                created_at=order.created_at,
+            )
+        )
+    return results
+
+
+# --- Commission management (shared by affiliate referrals + influencer coupons) ---
+@router.get("/commissions", response_model=CommissionListResponse)
+def admin_list_commissions(
+    affiliate_id: Optional[uuid.UUID] = None,
+    status_filter: Optional[CommissionStatus] = Query(None, alias="status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    filters = commission_crud.CommissionFilters(affiliate_id=affiliate_id, status=status_filter, page=page, page_size=page_size)
+    items, total = commission_crud.list_admin(db, filters)
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    return CommissionListResponse(
+        items=[
+            CommissionRead(
+                id=c.id,
+                source=c.source,
+                affiliate_id=c.affiliate_id,
+                coupon_id=c.coupon_id,
+                order_id=c.order_id,
+                order_number=c.order.order_number,
+                percentage_applied=float(c.percentage_applied),
+                amount=float(c.amount),
+                status=c.status,
+                created_at=c.created_at,
+                earned_at=c.earned_at,
+                paid_at=c.paid_at,
+                reversed_at=c.reversed_at,
+            )
+            for c in items
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+@router.post("/commissions/{commission_id}/mark-paid", response_model=CommissionRead)
+def admin_mark_commission_paid(commission_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Only EARNED commissions can be marked paid — PENDING ones are still
+    inside the return-window hold, and PAID/REVERSED are already final."""
+    try:
+        commission = commission_crud.mark_paid(db, commission_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    return CommissionRead(
+        id=commission.id,
+        source=commission.source,
+        affiliate_id=commission.affiliate_id,
+        coupon_id=commission.coupon_id,
+        order_id=commission.order_id,
+        order_number=commission.order.order_number,
+        percentage_applied=float(commission.percentage_applied),
+        amount=float(commission.amount),
+        status=commission.status,
+        created_at=commission.created_at,
+        earned_at=commission.earned_at,
+        paid_at=commission.paid_at,
+        reversed_at=commission.reversed_at,
+    )

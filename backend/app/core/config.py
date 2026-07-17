@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     # WhatsApp
     WHATSAPP_BUSINESS_NUMBER: str = ""
 
+    # Google Sign-In (empty by default until real OAuth credentials are
+    # supplied — the endpoint will reject tokens until then)
+    GOOGLE_CLIENT_ID: str = ""
+
+    # Affiliate marketing
+    AFFILIATE_ATTRIBUTION_DAYS: int = 30
+
     # CORS - comma separated in .env (kept as a raw string: pydantic-settings
     # would otherwise try to JSON-decode a List[str] field, which breaks on
     # a plain comma-separated value). Use `allowed_origins_list` to consume it.

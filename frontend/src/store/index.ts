@@ -7,6 +7,7 @@ import ordersReducer from "@/features/orders/ordersSlice";
 import addressesReducer from "@/features/addresses/addressesSlice";
 import couponReducer from "@/features/coupon/couponSlice";
 import inventoryReducer from "@/features/inventory/inventorySlice";
+import affiliateReducer from "@/features/affiliate/affiliateSlice";
 import { registerStore } from "./storeRegistry";
 
 /**
@@ -23,6 +24,7 @@ export const store = configureStore({
     addresses: addressesReducer,
     coupon: couponReducer,
     inventory: inventoryReducer,
+    affiliate: affiliateReducer,
   },
 });
 

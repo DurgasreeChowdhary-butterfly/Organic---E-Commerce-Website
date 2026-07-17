@@ -31,6 +31,14 @@ class Coupon(Base):
     valid_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    # Influencer coupons: `discount_value` (above) is still the customer's
+    # discount. `influencer_commission_percentage` is a separate cut paid to
+    # the influencer, computed off the order total on successful payment —
+    # see crud/commission.py `attribute_order`.
+    is_influencer: Mapped[bool] = mapped_column(Boolean, default=False)
+    influencer_name: Mapped[str] = mapped_column(String(255), nullable=True)
+    influencer_commission_percentage: Mapped[float] = mapped_column(Numeric(5, 2), nullable=True)
+
     redemptions: Mapped[list["CouponRedemption"]] = relationship(back_populates="coupon", cascade="all, delete-orphan")
 
 
