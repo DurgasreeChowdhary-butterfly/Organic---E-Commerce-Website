@@ -2,7 +2,8 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import * as affiliateService from "@/services/affiliateService";
 import * as adminService from "@/services/adminService";
-import type { Affiliate, AffiliateAdmin, AffiliateDashboard, AttributedOrderSummary, Commission } from "@/types";
+import { setSession } from "@/features/auth/authSlice";
+import type { Affiliate, AffiliateAdmin, AffiliateApplyPayload, AffiliateDashboard, AttributedOrderSummary, Commission } from "@/types";
 
 function apiErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
@@ -57,13 +58,24 @@ const initialState: AffiliateState = {
 
 // ---------- Customer: own affiliate profile ----------
 
-export const registerAffiliateThunk = createAsyncThunk("affiliate/register", async (_: void, { rejectWithValue }) => {
-  try {
-    return await affiliateService.registerAffiliate();
-  } catch (err) {
-    return rejectWithValue(apiErrorMessage(err, "Could not register as an affiliate"));
+/** Public "Become an Affiliate" submission — works for both anonymous
+ * visitors (payload creates a new account) and logged-in customers
+ * (payload is ignored; the current account is used). When the response
+ * includes fresh tokens (anonymous path), logs the new account in. */
+export const applyAffiliateThunk = createAsyncThunk(
+  "affiliate/apply",
+  async (payload: AffiliateApplyPayload, { dispatch, rejectWithValue }) => {
+    try {
+      const result = await affiliateService.applyAffiliate(payload);
+      if (result.access_token && result.refresh_token && result.user) {
+        dispatch(setSession({ user: result.user, accessToken: result.access_token, refreshToken: result.refresh_token }));
+      }
+      return result.affiliate;
+    } catch (err) {
+      return rejectWithValue(apiErrorMessage(err, "Could not submit your affiliate application"));
+    }
   }
-});
+);
 
 export const fetchMyAffiliateThunk = createAsyncThunk("affiliate/fetchMe", async (_: void, { rejectWithValue }) => {
   try {
@@ -187,17 +199,17 @@ const affiliateSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(registerAffiliateThunk.pending, (state) => {
+      .addCase(applyAffiliateThunk.pending, (state) => {
         state.status = "loading";
         state.error = null;
       })
-      .addCase(registerAffiliateThunk.fulfilled, (state, action) => {
+      .addCase(applyAffiliateThunk.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.profile = action.payload;
       })
-      .addCase(registerAffiliateThunk.rejected, (state, action) => {
+      .addCase(applyAffiliateThunk.rejected, (state, action) => {
         state.status = "error";
-        state.error = (action.payload as string) ?? "Could not register as an affiliate";
+        state.error = (action.payload as string) ?? "Could not submit your affiliate application";
       })
 
       .addCase(fetchMyAffiliateThunk.fulfilled, (state, action) => {

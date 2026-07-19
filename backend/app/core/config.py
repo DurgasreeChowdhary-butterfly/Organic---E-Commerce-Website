@@ -46,6 +46,14 @@ class Settings(BaseSettings):
     # Affiliate marketing
     AFFILIATE_ATTRIBUTION_DAYS: int = 30
 
+    # Password reset
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # Email (Resend)
+    RESEND_API_KEY: str = ""
+    MAIL_FROM: str = "Prakruti Organics <onboarding@resend.dev>"
+    FRONTEND_URL: str = "http://localhost:5173"
+
     # CORS - comma separated in .env (kept as a raw string: pydantic-settings
     # would otherwise try to JSON-decode a List[str] field, which breaks on
     # a plain comma-separated value). Use `allowed_origins_list` to consume it.

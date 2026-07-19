@@ -7,6 +7,7 @@ import type {
   AffiliateListResponse,
   AffiliateStatus,
   AttributedOrderSummary,
+  Branding,
   Category,
   Commission,
   CommissionListResponse,
@@ -28,6 +29,22 @@ import type {
 
 export async function getDashboardStats(trendDays = 7): Promise<DashboardAnalytics> {
   const { data } = await apiClient.get<DashboardAnalytics>("/admin/dashboard/stats", { params: { trend_days: trendDays } });
+  return data;
+}
+
+// ---------- Admin: Branding ----------
+
+export async function adminUploadBrandingLogo(file: File): Promise<Branding> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await apiClient.post<Branding>("/admin/branding/logo", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+export async function adminDeleteBrandingLogo(): Promise<Branding> {
+  const { data } = await apiClient.delete<Branding>("/admin/branding/logo");
   return data;
 }
 

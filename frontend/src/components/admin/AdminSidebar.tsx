@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Package, FolderTree, ClipboardList, Users, Boxes, Leaf, Store, LogOut, X, Tag, Megaphone } from "lucide-react";
+import { LayoutDashboard, Package, FolderTree, ClipboardList, Users, Boxes, Leaf, Store, LogOut, X, Tag, Megaphone, Image as ImageIcon } from "lucide-react";
 import clsx from "clsx";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logoutThunk } from "@/features/auth/authSlice";
@@ -13,6 +13,7 @@ const links = [
   { to: "/admin/orders", label: "Orders", icon: ClipboardList, end: false },
   { to: "/admin/customers", label: "Customers", icon: Users, end: false },
   { to: "/admin/inventory", label: "Inventory", icon: Boxes, end: false },
+  { to: "/admin/branding", label: "Branding", icon: ImageIcon, end: false },
 ];
 
 interface AdminSidebarProps {

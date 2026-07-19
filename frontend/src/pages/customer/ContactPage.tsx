@@ -5,9 +5,9 @@ import { useState } from "react";
 import { Mail, Phone, MapPin, Send, Check, MessageCircle } from "lucide-react";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
 import Button from "@/components/common/Button";
+import { buildWhatsAppLink } from "@/utils/whatsapp";
 
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999";
-const WHATSAPP_HREF = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi, I'd like help from the Prakruti Organics support team.")}`;
+const WHATSAPP_HREF = buildWhatsAppLink("Hi, I'd like help from the Prakruti Organics support team.");
 
 const contactSchema = z.object({
   name: z.string().min(2, "Enter your name"),

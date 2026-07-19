@@ -18,6 +18,7 @@ from app.api.v1.endpoints import (
     chatbot,
     admin,
     affiliate,
+    branding,
 )
 
 api_router = APIRouter()
@@ -35,3 +36,4 @@ api_router.include_router(coupons.router, prefix="/coupons", tags=["coupons"])
 api_router.include_router(chatbot.router, prefix="/chatbot", tags=["chatbot"])
 api_router.include_router(affiliate.router, prefix="/affiliate", tags=["affiliate"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_router.include_router(branding.router, prefix="/branding", tags=["branding"])

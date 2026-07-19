@@ -1,9 +1,12 @@
 """
-Authentication endpoints: register, login, refresh, logout.
+Authentication endpoints: register, login, refresh, logout, forgot/reset
+password.
 
-OTP verification and forgot-password require an external SMS/email
-provider and are out of scope here — they remain unimplemented stubs.
+OTP verification requires an external SMS provider and is out of scope
+here — it remains an unimplemented stub.
 """
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
@@ -13,22 +16,33 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.rate_limit import enforce_rate_limit
 from app.core.security import create_access_token, create_refresh_token, decode_token
+from app.crud import password_reset as password_reset_crud
 from app.crud import token as token_crud
 from app.crud import user as user_crud
 from app.db.session import get_db
+from app.services import email_service
 from app.schemas.user import (
     AuthResponse,
+    ForgotPasswordRequest,
     GoogleLoginRequest,
     LogoutRequest,
+    MessageResponse,
     OTPRequest,
     OTPVerify,
     RefreshRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UserCreate,
     UserLogin,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+GENERIC_FORGOT_PASSWORD_RESPONSE = MessageResponse(
+    message="If an account exists for that email, a password reset link has been sent."
+)
 
 
 def _issue_tokens(db: Session, user_id) -> tuple[str, str]:
@@ -157,7 +171,62 @@ def verify_otp(payload: OTPVerify):
     raise NotImplementedError
 
 
-@router.post("/forgot-password")
-def forgot_password(email: str):
-    """Trigger a password reset email. TODO: implement."""
-    raise NotImplementedError
+@router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    """Request a password reset email.
+
+    Always returns the same generic message regardless of whether the
+    email is registered, active, or Google-only (no local password) — this
+    prevents user enumeration per OWASP guidance. Rate-limited per-IP and
+    per-email to slow down abuse.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_rate_limit(f"forgot-password:{client_ip}", max_requests=5, window_seconds=300)
+    enforce_rate_limit(f"forgot-password:{payload.email.lower()}", max_requests=3, window_seconds=900)
+
+    user = user_crud.get_by_email(db, payload.email)
+    if user is not None and user.is_active and user.hashed_password is not None:
+        raw_token = password_reset_crud.create(db, user_id=user.id)
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={raw_token}"
+        try:
+            email_service.send_password_reset_email(
+                to_email=user.email,
+                full_name=user.full_name,
+                reset_url=reset_url,
+                expires_in_minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
+            )
+        except Exception:
+            # Never let a delivery failure change the response the client
+            # sees — that would leak whether the address exists.
+            logger.exception("Failed to send password reset email to %s", user.email)
+
+    return GENERIC_FORGOT_PASSWORD_RESPONSE
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    """Consume a password reset token and set a new password.
+
+    Tokens are single-use (invalidated immediately on success) and expire
+    after PASSWORD_RESET_TOKEN_EXPIRE_MINUTES. All existing refresh tokens
+    for the user are revoked afterwards so other sessions must
+    re-authenticate with the new password.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_rate_limit(f"reset-password:{client_ip}", max_requests=10, window_seconds=300)
+
+    invalid_exc = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
+
+    db_token = password_reset_crud.get_valid_by_raw_token(db, payload.token)
+    if db_token is None:
+        raise invalid_exc
+
+    user = user_crud.get(db, db_token.user_id)
+    if user is None or not user.is_active:
+        raise invalid_exc
+
+    user_crud.set_password(db, user, payload.new_password)
+    password_reset_crud.mark_used(db, db_token)
+    token_crud.revoke_all_for_user(db, user.id)
+
+    return MessageResponse(message="Your password has been reset successfully. Please log in with your new password.")

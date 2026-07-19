@@ -2,7 +2,7 @@
 Import all models here so Alembic autogenerate can discover them.
 """
 from app.models.user import User, Address
-from app.models.token import RefreshToken
+from app.models.token import RefreshToken, PasswordResetToken
 from app.models.product import Product, Category, ProductImage
 from app.models.cart import Cart, CartItem
 from app.models.wishlist import Wishlist, WishlistItem
@@ -13,3 +13,4 @@ from app.models.inventory import InventoryTransaction
 from app.models.review import Review
 from app.models.affiliate import Affiliate, AffiliateClick
 from app.models.commission import Commission
+from app.models.branding import SiteBranding

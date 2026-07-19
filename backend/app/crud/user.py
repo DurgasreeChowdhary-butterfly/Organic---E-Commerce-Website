@@ -59,6 +59,14 @@ def remove(db: Session, id: uuid.UUID) -> None:
         db.commit()
 
 
+def set_password(db: Session, db_obj: User, new_password: str) -> User:
+    db_obj.hashed_password = hash_password(new_password)
+    db.add(db_obj)
+    db.commit()
+    db.refresh(db_obj)
+    return db_obj
+
+
 def authenticate(db: Session, email: str, password: str) -> Optional[User]:
     user = get_by_email(db, email)
     if user is None or user.hashed_password is None or not verify_password(password, user.hashed_password):

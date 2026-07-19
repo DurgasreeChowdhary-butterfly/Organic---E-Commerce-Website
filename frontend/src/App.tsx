@@ -4,6 +4,7 @@ import WhatsAppButton from "@/components/common/WhatsAppButton";
 import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchMeThunk } from "@/features/auth/authSlice";
+import { fetchBrandingThunk } from "@/features/branding/brandingSlice";
 import { fetchCategoriesThunk } from "@/features/products/productsSlice";
 import { fetchCartThunk } from "@/features/cart/cartSlice";
 import { fetchWishlistThunk } from "@/features/wishlist/wishlistSlice";
@@ -32,6 +33,8 @@ export default function App() {
     // Categories power the header nav, footer links, and product filters —
     // fetch once here rather than duplicating the call in each component.
     dispatch(fetchCategoriesThunk());
+    // The uploaded logo (if any) powers the customer header's brand mark.
+    dispatch(fetchBrandingThunk());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

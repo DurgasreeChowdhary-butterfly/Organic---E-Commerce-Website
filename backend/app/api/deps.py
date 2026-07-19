@@ -2,8 +2,9 @@
 Shared FastAPI dependencies: DB session, current user, admin guard.
 """
 import uuid
+from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
@@ -47,6 +48,40 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
 
+    return user
+
+
+def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
+    """Same validation as `get_current_user`, but returns None instead of
+    raising when no/invalid credentials are supplied — for endpoints usable
+    by both anonymous visitors and logged-in users (e.g. public affiliate
+    application, which either creates a new account or reuses the caller's
+    existing one)."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.lower().startswith("bearer "):
+        return None
+
+    token = auth_header.split(" ", 1)[1].strip()
+    try:
+        payload = decode_token(token)
+    except JWTError:
+        return None
+
+    if payload.get("type") != "access":
+        return None
+
+    subject = payload.get("sub")
+    if subject is None:
+        return None
+
+    try:
+        user_id = uuid.UUID(subject)
+    except ValueError:
+        return None
+
+    user = user_crud.get(db, user_id)
+    if user is None or not user.is_active:
+        return None
     return user
 
 

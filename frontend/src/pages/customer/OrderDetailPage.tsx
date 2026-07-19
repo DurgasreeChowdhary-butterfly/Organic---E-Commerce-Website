@@ -10,13 +10,12 @@ import { formatCurrency } from "@/utils/formatCurrency";
 import { downloadInvoice } from "@/services/orderService";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOrderThunk, cancelOrderThunk, reorderThunk, clearOrderDetailError, clearReorderSkipped } from "@/features/orders/ordersSlice";
+import { buildWhatsAppLink } from "@/utils/whatsapp";
 
 const CANCELLABLE_STATUSES = new Set(["pending", "confirmed", "packed"]);
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999";
 
 function orderSupportWhatsAppLink(orderNumber: string) {
-  const text = `Hi, I need help with my order ${orderNumber}.`;
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+  return buildWhatsAppLink(`Hi, I need help with my order ${orderNumber}.`);
 }
 
 export default function OrderDetailPage() {

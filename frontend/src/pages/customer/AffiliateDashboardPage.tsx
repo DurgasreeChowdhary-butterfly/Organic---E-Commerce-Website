@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import {
-  Copy, Check, MousePointerClick, ShoppingBag, IndianRupee, Clock, Wallet, Megaphone,
+  Copy, Check, MousePointerClick, ShoppingBag, IndianRupee, Clock, Wallet,
 } from "lucide-react";
 import Breadcrumbs from "@/components/common/Breadcrumbs";
-import Button from "@/components/common/Button";
+import AffiliateApplyForm from "@/components/affiliate/AffiliateApplyForm";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  fetchMyAffiliateThunk, fetchAffiliateDashboardThunk, fetchAffiliateOrdersThunk, registerAffiliateThunk,
+  fetchMyAffiliateThunk, fetchAffiliateDashboardThunk, fetchAffiliateOrdersThunk,
 } from "@/features/affiliate/affiliateSlice";
 import { fetchProductsThunk } from "@/features/products/productsSlice";
 import { formatCurrency } from "@/utils/formatCurrency";
@@ -48,25 +48,22 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: "Pending Approval",
-  approved: "Approved",
-  rejected: "Rejected",
-  blocked: "Blocked",
-};
-
-/** Customer-facing affiliate hub: shows a "become an affiliate" CTA if the
- * user hasn't registered yet, otherwise the full dashboard (links, clicks,
- * orders, commission). One page covers both registration and dashboard —
- * simpler than two separate routes for what is really one destination. */
+/** Customer-facing affiliate hub: shows the public application form if the
+ * visitor/user hasn't applied yet, a status card while pending/rejected/
+ * blocked, or the full dashboard (links, clicks, orders, commission) once
+ * approved. One page covers the whole lifecycle — registration through
+ * dashboard — rather than splitting it across routes. Public: reachable
+ * while logged out (see AppRoutes.tsx), since becoming an affiliate must
+ * not require an account up front. */
 export default function AffiliateDashboardPage() {
   const dispatch = useAppDispatch();
-  const { profile, dashboard, orders, status } = useAppSelector((s) => s.affiliate);
+  const { isAuthenticated } = useAppSelector((s) => s.auth);
+  const { profile, dashboard, orders } = useAppSelector((s) => s.affiliate);
   const products = useAppSelector((s) => s.products.items);
 
   useEffect(() => {
-    dispatch(fetchMyAffiliateThunk());
-  }, [dispatch]);
+    if (isAuthenticated) dispatch(fetchMyAffiliateThunk());
+  }, [dispatch, isAuthenticated]);
 
   useEffect(() => {
     if (profile?.status === "approved") {
@@ -78,35 +75,37 @@ export default function AffiliateDashboardPage() {
 
   const origin = window.location.origin;
 
-  async function handleRegister() {
-    await dispatch(registerAffiliateThunk());
-  }
-
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-8 py-4 sm:py-8">
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Affiliate Program" }]} />
       <h1 className="font-display text-lg sm:text-2xl md:text-3xl text-forest-700 mb-3 sm:mb-6">Affiliate Program</h1>
 
       {!profile && (
-        <div className="rounded-3xl bg-white shadow-soft p-6 sm:p-10 text-center">
-          <Megaphone className="w-10 h-10 text-pista-700 mx-auto mb-3" />
-          <h2 className="font-display text-lg text-forest-700 mb-2">Earn commission promoting Prakruti Organics</h2>
-          <p className="text-sm text-brown-500 max-w-md mx-auto mb-5">
-            Get your own referral link, share it anywhere, and earn a commission on every order placed through it —
-            once your application is approved.
-          </p>
-          <Button onClick={handleRegister} loading={status === "loading"}>Apply to Become an Affiliate</Button>
+        <div className="rounded-3xl bg-white shadow-soft p-6 sm:p-10">
+          <AffiliateApplyForm />
         </div>
       )}
 
       {profile && profile.status !== "approved" && (
         <div className="rounded-3xl bg-white shadow-soft p-6 sm:p-10 text-center">
-          <p className="text-sm font-semibold text-forest-700 mb-1">Status: {STATUS_LABEL[profile.status]}</p>
-          <p className="text-sm text-brown-500">
-            {profile.status === "pending" && "Your application is awaiting admin approval. Check back soon."}
-            {profile.status === "rejected" && "Your affiliate application was not approved."}
-            {profile.status === "blocked" && "Your affiliate account has been blocked. Contact support for details."}
-          </p>
+          {profile.status === "pending" && (
+            <>
+              <p className="text-base font-semibold text-forest-700 mb-1">Your affiliate application has been submitted.</p>
+              <p className="text-sm text-brown-500">Status: Pending Approval — an admin will review it shortly. Check back soon.</p>
+            </>
+          )}
+          {profile.status === "rejected" && (
+            <>
+              <p className="text-base font-semibold text-forest-700 mb-1">Status: Rejected</p>
+              <p className="text-sm text-brown-500">Your affiliate application was not approved.</p>
+            </>
+          )}
+          {profile.status === "blocked" && (
+            <>
+              <p className="text-base font-semibold text-forest-700 mb-1">Status: Blocked</p>
+              <p className="text-sm text-brown-500">Your affiliate account has been blocked. Contact support for details.</p>
+            </>
+          )}
         </div>
       )}
 

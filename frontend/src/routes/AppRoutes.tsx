@@ -14,6 +14,8 @@ import WishlistPage from "@/pages/customer/WishlistPage";
 import CheckoutPage from "@/pages/customer/CheckoutPage";
 import LoginPage from "@/pages/customer/LoginPage";
 import RegisterPage from "@/pages/customer/RegisterPage";
+import ForgotPasswordPage from "@/pages/customer/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/customer/ResetPasswordPage";
 import OrderHistoryPage from "@/pages/customer/OrderHistoryPage";
 import OrderDetailPage from "@/pages/customer/OrderDetailPage";
 import AddressBookPage from "@/pages/customer/AddressBookPage";
@@ -34,6 +36,7 @@ const AdminCouponsPage = lazy(() => import("@/pages/admin/AdminCouponsPage"));
 const AdminOrdersPage = lazy(() => import("@/pages/admin/AdminOrdersPage"));
 const AdminCustomersPage = lazy(() => import("@/pages/admin/AdminCustomersPage"));
 const AdminInventoryPage = lazy(() => import("@/pages/admin/AdminInventoryPage"));
+const AdminBrandingPage = lazy(() => import("@/pages/admin/AdminBrandingPage"));
 const AdminAffiliatesPage = lazy(() => import("@/pages/admin/AdminAffiliatesPage"));
 const AffiliateDashboardPage = lazy(() => import("@/pages/customer/AffiliateDashboardPage"));
 
@@ -60,10 +63,19 @@ export default function AppRoutes() {
         <Route path="/search" element={<SearchResultsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/returns" element={<ReturnsPage />} />
+        {/* Public — visitors must be able to apply without an account first;
+            the page itself shows the registration form, pending/rejected/
+            blocked status, or the full dashboard depending on auth + affiliate state. */}
+        <Route
+          path="/affiliate"
+          element={<Suspense fallback={<AdminPageFallback />}><AffiliateDashboardPage /></Suspense>}
+        />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/cart" element={<CartPage />} />
@@ -73,10 +85,6 @@ export default function AppRoutes() {
           <Route path="/orders/:orderId" element={<OrderDetailPage />} />
           <Route path="/account/addresses" element={<AddressBookPage />} />
           <Route path="/account/profile" element={<ProfilePage />} />
-          <Route
-            path="/affiliate"
-            element={<Suspense fallback={<AdminPageFallback />}><AffiliateDashboardPage /></Suspense>}
-          />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
@@ -111,6 +119,10 @@ export default function AppRoutes() {
           <Route
             path="/admin/inventory"
             element={<Suspense fallback={<AdminPageFallback />}><AdminInventoryPage /></Suspense>}
+          />
+          <Route
+            path="/admin/branding"
+            element={<Suspense fallback={<AdminPageFallback />}><AdminBrandingPage /></Suspense>}
           />
           <Route
             path="/admin/affiliates"

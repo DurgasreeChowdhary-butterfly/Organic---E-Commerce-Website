@@ -61,6 +61,23 @@ export async function getMe(): Promise<User> {
   return data;
 }
 
+export interface MessageResponse {
+  message: string;
+}
+
+export async function forgotPassword(email: string): Promise<MessageResponse> {
+  const { data } = await apiClient.post<MessageResponse>("/auth/forgot-password", { email });
+  return data;
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<MessageResponse> {
+  const { data } = await apiClient.post<MessageResponse>("/auth/reset-password", {
+    token,
+    new_password: newPassword,
+  });
+  return data;
+}
+
 export async function updateProfile(payload: UpdateProfilePayload): Promise<User> {
   const { data } = await apiClient.put<User>("/users/me", payload);
   return data;

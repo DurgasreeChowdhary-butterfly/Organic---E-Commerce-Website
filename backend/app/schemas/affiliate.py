@@ -3,14 +3,29 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 from app.models.affiliate import AffiliateStatus
+from app.schemas.user import UserRead
 
 
 class AffiliateRegister(BaseModel):
     """Body is empty — the affiliate profile is created for the current
     authenticated user; no fields are client-supplied."""
+
+
+class AffiliateApply(BaseModel):
+    """Public 'Become an Affiliate' submission. When the caller is already
+    authenticated (Authorization header present), all of these are ignored
+    and the affiliate profile is created for that existing account. When
+    the caller is anonymous, full_name/email/phone/password/confirm_password
+    are required to create the underlying customer account first."""
+
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    password: Optional[str] = None
+    confirm_password: Optional[str] = None
 
 
 class AffiliateRead(BaseModel):
@@ -23,6 +38,16 @@ class AffiliateRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AffiliateApplyResponse(BaseModel):
+    affiliate: AffiliateRead
+    # Populated only when a new account was created (anonymous applicant) —
+    # lets the frontend log the visitor straight into their new account.
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_type: str = "bearer"
+    user: Optional[UserRead] = None
 
 
 class AffiliateAdminRead(AffiliateRead):

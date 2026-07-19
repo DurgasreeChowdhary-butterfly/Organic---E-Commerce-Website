@@ -22,8 +22,16 @@ class AffiliateNotFound(Exception):
 
 
 class AffiliateAlreadyRegistered(Exception):
-    def __init__(self):
-        super().__init__("You already have an affiliate account")
+    def __init__(self, message: str = "You already have an affiliate account"):
+        super().__init__(message)
+
+
+_DUPLICATE_MESSAGES = {
+    AffiliateStatus.PENDING: "Your affiliate application is already pending approval.",
+    AffiliateStatus.APPROVED: "You are already an approved affiliate.",
+    AffiliateStatus.REJECTED: "Your previous affiliate application was not approved.",
+    AffiliateStatus.BLOCKED: "Your affiliate account has been blocked. Contact support for details.",
+}
 
 
 def get(db: Session, affiliate_id: uuid.UUID) -> Affiliate:
@@ -55,8 +63,9 @@ def _generate_code(db: Session, full_name: str) -> str:
 
 
 def register(db: Session, user: User) -> Affiliate:
-    if get_by_user_id(db, user.id) is not None:
-        raise AffiliateAlreadyRegistered()
+    existing = get_by_user_id(db, user.id)
+    if existing is not None:
+        raise AffiliateAlreadyRegistered(_DUPLICATE_MESSAGES.get(existing.status, "You already have an affiliate account"))
     affiliate = Affiliate(user_id=user.id, affiliate_code=_generate_code(db, user.full_name))
     db.add(affiliate)
     db.commit()

@@ -33,5 +33,15 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Docker Desktop on Windows doesn't reliably propagate native filesystem
+    // change events for a bind-mounted directory into the Linux container —
+    // edits made on the Windows host (or by any tool outside the container)
+    // never trigger chokidar, so Vite keeps serving stale cached transforms
+    // of already-requested files indefinitely. Polling works around this by
+    // having Vite actively re-stat files instead of waiting for OS events.
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
   },
 });

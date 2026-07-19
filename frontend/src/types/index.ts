@@ -15,6 +15,10 @@ export interface User {
   auth_provider: AuthProvider;
 }
 
+export interface Branding {
+  logo_url: string | null;
+}
+
 export type AddressType = "home" | "office" | "other";
 
 export interface Address {
@@ -414,6 +418,22 @@ export interface AffiliateAdmin extends Affiliate {
   user_id: string;
   full_name: string;
   email: string;
+}
+
+export interface AffiliateApplyPayload {
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  confirm_password?: string;
+}
+
+export interface AffiliateApplyResponse {
+  affiliate: Affiliate;
+  access_token?: string | null;
+  refresh_token?: string | null;
+  token_type?: string;
+  user?: User | null;
 }
 
 export interface AffiliateListResponse {

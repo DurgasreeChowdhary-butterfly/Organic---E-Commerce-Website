@@ -5,6 +5,7 @@ import clsx from "clsx";
 import SearchBar from "@/components/common/SearchBar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logoutThunk } from "@/features/auth/authSlice";
+import { resolveImageUrl } from "@/utils/resolveImageUrl";
 
 /**
  * Premium sticky header: logo, category nav, search bar, and account/
@@ -23,6 +24,7 @@ export default function Header() {
   const cartCount = useAppSelector((s) => s.cart.items.reduce((sum, i) => sum + i.quantity, 0));
   const wishlistCount = useAppSelector((s) => s.wishlist.items.length);
   const categories = useAppSelector((s) => s.products.categories);
+  const logoUrl = useAppSelector((s) => resolveImageUrl(s.branding.logoUrl));
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -53,9 +55,13 @@ export default function Header() {
     >
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-3.5 flex items-center gap-4">
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-forest-700">
-            <Leaf className="w-5 h-5 text-gold" />
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Prakruti Organics" className="w-9 h-9 rounded-full object-cover" />
+          ) : (
+            <div className="w-9 h-9 rounded-full flex items-center justify-center bg-forest-700">
+              <Leaf className="w-5 h-5 text-gold" />
+            </div>
+          )}
           <span className="font-display text-xl text-forest-700 hidden sm:block">Prakruti Organics</span>
         </Link>
 
@@ -136,6 +142,9 @@ export default function Header() {
                     <Link to="/register" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-forest-700 hover:bg-pista-50 transition-colors">
                       <User className="w-4 h-4" /> Create Account
                     </Link>
+                    <Link to="/affiliate" onClick={() => setAccountOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-forest-700 hover:bg-pista-50 transition-colors border-t border-beige">
+                      <Megaphone className="w-4 h-4" /> Affiliate Program
+                    </Link>
                   </>
                 )}
               </div>
@@ -175,6 +184,7 @@ export default function Header() {
             <>
               <NavLink to="/login" onClick={() => setMenuOpen(false)}>Log In</NavLink>
               <NavLink to="/register" onClick={() => setMenuOpen(false)}>Create Account</NavLink>
+              <NavLink to="/affiliate" onClick={() => setMenuOpen(false)}>Affiliate Program</NavLink>
             </>
           )}
         </div>

@@ -4,6 +4,7 @@ import { MessageSquareText, X, Send, Leaf, RotateCcw, AlertCircle, PackageX } fr
 import { sendChatMessage } from "@/services/chatbotService";
 import { resolveImageUrl } from "@/utils/resolveImageUrl";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { buildWhatsAppLink } from "@/utils/whatsapp";
 import type { ChatProductSuggestion } from "@/types";
 
 interface Message {
@@ -24,12 +25,6 @@ const STARTER_QUESTIONS = [
   "What payment methods do you support?",
   "How do I cancel an order?",
 ];
-
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999";
-
-function whatsappLink(message: string) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-}
 
 /** AI-powered FAQ/product-discovery chatbot, backed by the real Gemini-grounded backend. */
 export default function ChatbotWidget() {
@@ -139,7 +134,7 @@ export default function ChatbotWidget() {
 
                 {m.escalate && (
                   <a
-                    href={whatsappLink("Hi, I need help with something the chat assistant couldn't resolve.")}
+                    href={buildWhatsAppLink("Hi, I need help with something the chat assistant couldn't resolve.")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-2 text-xs font-semibold text-pista-700 hover:underline"
@@ -181,7 +176,7 @@ export default function ChatbotWidget() {
 
           <div className="px-4 py-2 border-t border-beige">
             <a
-              href={whatsappLink("Hi, I'd like help from the Prakruti Organics support team.")}
+              href={buildWhatsAppLink("Hi, I'd like help from the Prakruti Organics support team.")}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs font-semibold text-pista-700 hover:underline"

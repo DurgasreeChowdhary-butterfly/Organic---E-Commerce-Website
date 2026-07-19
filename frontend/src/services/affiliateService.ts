@@ -1,8 +1,11 @@
 import { apiClient } from "./apiClient";
-import type { Affiliate, AffiliateDashboard, AttributedOrderSummary } from "@/types";
+import type { Affiliate, AffiliateApplyPayload, AffiliateApplyResponse, AffiliateDashboard, AttributedOrderSummary } from "@/types";
 
-export async function registerAffiliate(): Promise<Affiliate> {
-  const { data } = await apiClient.post<Affiliate>("/affiliate/register");
+/** Public "Become an Affiliate" entry point. Works whether the caller is
+ * logged in (payload is ignored server-side, current account is used) or
+ * anonymous (payload creates a new account and applies it in one step). */
+export async function applyAffiliate(payload: AffiliateApplyPayload): Promise<AffiliateApplyResponse> {
+  const { data } = await apiClient.post<AffiliateApplyResponse>("/affiliate/apply", payload);
   return data;
 }
 

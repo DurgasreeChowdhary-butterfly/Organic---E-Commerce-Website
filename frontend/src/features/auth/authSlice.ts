@@ -124,6 +124,16 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       persist({ user: state.user, accessToken: state.accessToken, refreshToken: state.refreshToken });
     },
+    /** Logs in a user + token pair issued outside the normal auth thunks —
+     * e.g. the anonymous "Become an Affiliate" flow, which creates a new
+     * account and returns tokens for it in the same response. */
+    setSession(state, action: PayloadAction<{ user: User; accessToken: string; refreshToken: string }>) {
+      state.user = action.payload.user;
+      state.accessToken = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken;
+      state.isAuthenticated = true;
+      persist({ user: state.user, accessToken: state.accessToken, refreshToken: state.refreshToken });
+    },
     logout(state) {
       state.user = null;
       state.accessToken = null;
@@ -228,5 +238,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setTokens, logout, clearAuthError } = authSlice.actions;
+export const { setTokens, setSession, logout, clearAuthError } = authSlice.actions;
 export default authSlice.reducer;

@@ -15,6 +15,7 @@ from app.api.v1.endpoints.orders import _serialize_order as _admin_serialize_ord
 from app.db.session import get_db
 from app.api.deps import get_current_active_admin
 from app.crud import affiliate as affiliate_crud
+from app.crud import branding as branding_crud
 from app.crud import category as category_crud
 from app.crud import commission as commission_crud
 from app.crud import coupon as coupon_crud
@@ -36,6 +37,7 @@ from app.schemas.affiliate import (
     AffiliateListResponse,
     AttributedOrderSummary,
 )
+from app.schemas.branding import BrandingRead
 from app.schemas.commission import CommissionListResponse, CommissionRead
 from app.schemas.coupon import CouponCreate, CouponListResponse, CouponRead, CouponUpdate
 from app.schemas.customer import CustomerDetailRead, CustomerListItemRead, CustomerListResponse
@@ -66,7 +68,14 @@ from app.schemas.product import (
     ProductRead,
     ProductUpdate,
 )
-from app.services.storage_service import FileTooLarge, InvalidImageContent, UnsupportedFileType, upload_product_image
+from app.services.storage_service import (
+    FileTooLarge,
+    InvalidImageContent,
+    UnsupportedFileType,
+    delete_branding_logo,
+    upload_branding_logo,
+    upload_product_image,
+)
 from app.services.invoice_service import generate_invoice_pdf
 
 router = APIRouter(dependencies=[Depends(get_current_active_admin)])
@@ -102,6 +111,34 @@ def get_dashboard_stats(trend_days: int = Query(7, ge=1, le=90), db: Session = D
         ],
         sales_trend=trend,
     )
+
+
+# --- Branding management ---
+@router.post("/branding/logo", response_model=BrandingRead)
+def admin_upload_branding_logo(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Upload or replace the storefront logo. The previous file (if any) is
+    deleted only after the new one is validated and saved."""
+    content = file.file.read()
+    try:
+        url = upload_branding_logo(content, file.content_type or "")
+    except (UnsupportedFileType, FileTooLarge, InvalidImageContent) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    branding = branding_crud.get(db)
+    previous_logo_url = branding.logo_url
+    branding = branding_crud.set_logo(db, branding, url)
+    if previous_logo_url:
+        delete_branding_logo(previous_logo_url)
+    return branding
+
+
+@router.delete("/branding/logo", response_model=BrandingRead)
+def admin_delete_branding_logo(db: Session = Depends(get_db)):
+    """Remove the storefront logo — the customer header reverts to its default mark."""
+    branding = branding_crud.get(db)
+    if branding.logo_url:
+        delete_branding_logo(branding.logo_url)
+    return branding_crud.clear_logo(db, branding)
 
 
 # --- Product management ---
